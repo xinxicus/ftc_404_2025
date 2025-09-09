@@ -16,7 +16,8 @@ This repository contains the robot control code for our FIRST Tech Challenge tea
 
 ```
 ├── doc/           # All documentation goes here
-└── java/          # All Java code goes here
+├── android/       # All Android based Custom Code goes here
+└── java/          # All On Bot Java code goes here
 ```
 
 ## Getting Started
