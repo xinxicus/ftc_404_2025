@@ -1,0 +1,5 @@
+# Keep ftcSDK as OOTB SDK (don't ignore it)
+ftcSDK/
+!ftcSDK/note.md
+output/
+

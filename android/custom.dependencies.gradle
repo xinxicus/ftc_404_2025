@@ -1,0 +1,11 @@
+// Custom dependencies for Error 404 team
+// This file is applied to the main build.gradle using apply from:
+
+dependencies {
+    // Add your custom dependencies here
+    // Example:
+    // implementation 'com.example:library:1.0.0'
+    implementation 'org.json:json:20210307'
+    
+    // You can add any additional libraries your team needs
+}
