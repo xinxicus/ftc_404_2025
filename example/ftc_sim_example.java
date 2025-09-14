@@ -423,6 +423,7 @@ public class MyFIRSTJavaOpMode extends LinearOpMode {
     public void displayVisionPortalData(){
       // Get current list of detected AprilTags from processor
       myAprilTagDetections = (myApriltagProcessor.getDetections());
+      telemetry.addData("Heading (Z)", (imu.getAngle()));
       
       // Process each detected AprilTag and display its data
       for (String myAprilTagDetection2 : myAprilTagDetections) {
@@ -487,6 +488,11 @@ public class MyFIRSTJavaOpMode extends LinearOpMode {
       // Wait for start button press or competition field start signal
       waitForStart();
       
+      myIMUReport = (new BNO055IMU.Parameters());
+      BNO055IMU.Parameters.setAngleUnit(myIMUReport, BNO055IMU.AngleUnit.DEGREES);
+      BNO055IMU.Parameters.setAccelUnit(myIMUReport, BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC);
+      imu.initialize(myIMUReport);
+
       // Begin robot operation in selected mode
       pickMode();
     }
