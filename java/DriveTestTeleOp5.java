@@ -4,7 +4,6 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -25,7 +24,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @TeleOp(name="Mecanum Drive - Full Dual Controller Support")
-public class DriveTestTeleOp2 extends LinearOpMode {
+public class DriveTestTeleOp5 extends LinearOpMode {
     // ---- fill with your real values later (for pose readout, optional) ----
     static final double WHEEL_RADIUS_IN = 1.8898; // 48mm
     static final double GEAR_RATIO = 1.0;
@@ -38,10 +37,19 @@ public class DriveTestTeleOp2 extends LinearOpMode {
     private IMU imu;
     
     // Accessory motors
-    private DcMotor shootMotor;
+    private DcMotorEx shootMotor;  // Using DcMotorEx to get velocity readings
     private DcMotor intakeMotor;
     private DcMotor leftIndexMotor;
     private DcMotor rightIndexMotor;
+    
+    // Shooter and indexer safety constants
+    private static final double MIN_SHOOTER_RPM = 2000;  // Minimum shooter RPM before indexers can activate (adjust based on your shooter)
+    private static final double RPM_TOLERANCE = 100;     // RPM tolerance for "at speed" detection (hysteresis to prevent jitter)
+    
+    // Shooter state tracking
+    private boolean shooterWasAtSpeed = false;  // Track previous state for hysteresis
+    private boolean shooterCurrentlyAtSpeed = false;  // Current state for telemetry display
+    private double currentShooterRPM = 0;  // Current RPM for telemetry display
 
     // optional: simple pose integration (encoders + IMU)
     private double x=0, y=0, heading=0;
@@ -58,7 +66,7 @@ public class DriveTestTeleOp2 extends LinearOpMode {
     final double MAX_AUTO_SPEED = 0.75;   
     final double MAX_AUTO_TURN  = 0.25;  
     private static final boolean USE_WEBCAM = true;  
-    private static final int DESIRED_TAG_ID = 24;    
+    private static final int DESIRED_TAG_ID = 20;    
     private VisionPortal visionPortal;               
     private AprilTagProcessor aprilTag;              
     private AprilTagDetection desiredTag = null;
@@ -92,7 +100,7 @@ public class DriveTestTeleOp2 extends LinearOpMode {
         imu.resetYaw();
         
         // Initialize accessory motors
-        shootMotor = hardwareMap.dcMotor.get("shootMotor");
+        shootMotor = hardwareMap.get(DcMotorEx.class, "shootMotor");
         intakeMotor = hardwareMap.dcMotor.get("intakeMotor");
         leftIndexMotor = hardwareMap.dcMotor.get("leftIndexMotor");
         rightIndexMotor = hardwareMap.dcMotor.get("rightIndexMotor");
@@ -100,8 +108,9 @@ public class DriveTestTeleOp2 extends LinearOpMode {
         // Reverse left index motor direction
         leftIndexMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         
-        // Set motor modes
-        shootMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        // Set motor modes - shooter uses RUN_USING_ENCODER to read velocity
+        shootMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shootMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftIndexMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightIndexMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -257,10 +266,24 @@ public class DriveTestTeleOp2 extends LinearOpMode {
             if (reverseActive) {
                 telemetry.addData("  MODE", "⚠️ REVERSE - CLEARING JAMS");
             }
-            telemetry.addData("  Left Index", (gamepad1.left_bumper || gamepad2.left_bumper) ? "ON" : "OFF");
-            telemetry.addData("  Right Index", (gamepad1.right_bumper || gamepad2.right_bumper) ? "ON" : "OFF");
+            
+            // Display shooter RPM and status (using actual state from handleAccessoryMotors)
+            if (shooterCurrentlyAtSpeed) {
+                telemetry.addData("  Shooter", "✓ READY - %.0f RPM (%.2f pwr)", currentShooterRPM, shootMotor.getPower());
+                telemetry.addData("  Indexers", "ENABLED - Press L1/R1");
+            } else if (shootMotor.getPower() > 0.1) {
+                telemetry.addData("  Shooter", "⏱ SPINNING UP - %.0f/%.0f RPM", currentShooterRPM, MIN_SHOOTER_RPM);
+                telemetry.addData("  Indexers", "LOCKED - Need %.0f RPM", MIN_SHOOTER_RPM);
+            } else {
+                telemetry.addData("  Shooter", "%.2f pwr (%.0f RPM)", shootMotor.getPower(), currentShooterRPM);
+                telemetry.addData("  Indexers", "LOCKED - Shooter not active");
+            }
+            
+            boolean leftIndexRequested = gamepad1.left_bumper || gamepad2.left_bumper;
+            boolean rightIndexRequested = gamepad1.right_bumper || gamepad2.right_bumper;
+            telemetry.addData("  Left Index", leftIndexRequested ? (shooterCurrentlyAtSpeed ? "ON" : "WAITING") : "OFF");
+            telemetry.addData("  Right Index", rightIndexRequested ? (shooterCurrentlyAtSpeed ? "ON" : "WAITING") : "OFF");
             telemetry.addData("  Intake", "%.2f", intakeMotor.getPower());
-            telemetry.addData("  Shooter", "%.2f", shootMotor.getPower());
             telemetry.update();
         }
     }
@@ -272,23 +295,74 @@ public class DriveTestTeleOp2 extends LinearOpMode {
     }
     
     /**
+     * Get the current shooter motor RPM
+     * Returns 0 if motor type is not configured
+     */
+    private double getShooterRPM() {
+        try {
+            double velocityTicksPerSec = shootMotor.getVelocity();
+            double ticksPerRev = shootMotor.getMotorType().getTicksPerRev();
+            if (ticksPerRev == 0) {
+                return 0;  // Prevent division by zero
+            }
+            return Math.abs(velocityTicksPerSec * 60.0 / ticksPerRev);
+        } catch (Exception e) {
+            // Return 0 if there's any issue reading velocity
+            return 0;
+        }
+    }
+    
+    /**
      * Handle intake and shooter motor controls via bumpers and triggers
      * Both gamepad1 and gamepad2 can control accessories
      * X button reverses intake and shooter to clear jams
+     * Indexers only activate when shooter reaches minimum RPM (velocity-based)
      */
     private void handleAccessoryMotors() {
         // Check if X button is pressed for reverse mode (jam clearing)
         boolean reverseMode = gamepad1.x || gamepad2.x;
         
-        // L1 (left bumper) controls left index motor - either controller
-        if (gamepad1.left_bumper || gamepad2.left_bumper) {
+        // R2 (right trigger) controls shooter motor - use max of both controllers
+        // X button reverses shooter for jam clearing
+        double shooterTrigger = Math.max(gamepad1.right_trigger, gamepad2.right_trigger);
+        if (reverseMode) {
+            shootMotor.setPower(-1.0);  // Full reverse when X is pressed
+            shooterWasAtSpeed = false;  // Reset hysteresis state when reversing
+        } else {
+            shootMotor.setPower(shooterTrigger);
+        }
+        
+        // Read actual shooter velocity (RPM) from encoder
+        currentShooterRPM = getShooterRPM();
+        
+        // Use hysteresis to prevent jitter when RPM fluctuates near threshold
+        // If currently OFF: need to reach MIN_SHOOTER_RPM to turn ON
+        // If currently ON: stay ON until drops below (MIN_SHOOTER_RPM - RPM_TOLERANCE)
+        if (reverseMode || shooterTrigger < 0.05) {
+            // Reset state if not actively shooting
+            shooterCurrentlyAtSpeed = false;
+            shooterWasAtSpeed = false;
+        } else if (shooterWasAtSpeed) {
+            // Already at speed, only turn off if drops significantly below threshold
+            shooterCurrentlyAtSpeed = currentShooterRPM >= (MIN_SHOOTER_RPM - RPM_TOLERANCE);
+            shooterWasAtSpeed = shooterCurrentlyAtSpeed;
+        } else {
+            // Not at speed yet, need to reach full threshold
+            shooterCurrentlyAtSpeed = currentShooterRPM >= MIN_SHOOTER_RPM;
+            shooterWasAtSpeed = shooterCurrentlyAtSpeed;
+        }
+        
+        // L1 (left bumper) controls left index motor - only if shooter is at speed
+        boolean leftBumperPressed = gamepad1.left_bumper || gamepad2.left_bumper;
+        if (leftBumperPressed && shooterCurrentlyAtSpeed) {
             leftIndexMotor.setPower(1.0);
         } else {
             leftIndexMotor.setPower(0);
         }
 
-        // R1 (right bumper) controls right index motor - either controller
-        if (gamepad1.right_bumper || gamepad2.right_bumper) {
+        // R1 (right bumper) controls right index motor - only if shooter is at speed
+        boolean rightBumperPressed = gamepad1.right_bumper || gamepad2.right_bumper;
+        if (rightBumperPressed && shooterCurrentlyAtSpeed) {
             rightIndexMotor.setPower(1.0);
         } else {
             rightIndexMotor.setPower(0);
@@ -301,15 +375,6 @@ public class DriveTestTeleOp2 extends LinearOpMode {
             intakeMotor.setPower(-1.0);  // Full reverse when X is pressed
         } else {
             intakeMotor.setPower(intakeTrigger);
-        }
-
-        // R2 (right trigger) controls shooter motor - use max of both controllers
-        // X button reverses shooter for jam clearing
-        double shooterTrigger = Math.max(gamepad1.right_trigger, gamepad2.right_trigger);
-        if (reverseMode) {
-            shootMotor.setPower(-1.0);  // Full reverse when X is pressed
-        } else {
-            shootMotor.setPower(shooterTrigger);
         }
     }
 
