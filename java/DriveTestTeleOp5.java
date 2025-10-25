@@ -43,8 +43,8 @@ public class DriveTestTeleOp5 extends LinearOpMode {
     private DcMotor rightIndexMotor;
     
     // Shooter and indexer safety constants
-    private static final double MIN_SHOOTER_RPM = 2000;  // Minimum shooter RPM before indexers can activate (adjust based on your shooter)
-    private static final double RPM_TOLERANCE = 100;     // RPM tolerance for "at speed" detection (hysteresis to prevent jitter)
+    private static final double MIN_SHOOTER_RPM = 20;  // Minimum shooter RPM before indexers can activate (adjust based on your shooter)
+    private static final double RPM_TOLERANCE = 0;     // RPM tolerance for "at speed" detection (hysteresis to prevent jitter)
     
     // Shooter state tracking
     private boolean shooterWasAtSpeed = false;  // Track previous state for hysteresis
@@ -264,7 +264,7 @@ public class DriveTestTeleOp5 extends LinearOpMode {
             telemetry.addData("Accessories", "");
             boolean reverseActive = gamepad1.x || gamepad2.x;
             if (reverseActive) {
-                telemetry.addData("  MODE", "⚠️ REVERSE - CLEARING JAMS");
+                telemetry.addData("  MODE", "⚠️ REVERSE - ALL MOTORS REVERSING!");
             }
             
             // Display shooter RPM and status (using actual state from handleAccessoryMotors)
@@ -278,6 +278,9 @@ public class DriveTestTeleOp5 extends LinearOpMode {
                 telemetry.addData("  Shooter", "%.2f pwr (%.0f RPM)", shootMotor.getPower(), currentShooterRPM);
                 telemetry.addData("  Indexers", "LOCKED - Shooter not active");
             }
+            
+            // Debug: Show encoder position to verify encoder is working
+            telemetry.addData("DEBUG Shooter Encoder", "%d ticks", shootMotor.getCurrentPosition());
             
             boolean leftIndexRequested = gamepad1.left_bumper || gamepad2.left_bumper;
             boolean rightIndexRequested = gamepad1.right_bumper || gamepad2.right_bumper;
@@ -302,12 +305,21 @@ public class DriveTestTeleOp5 extends LinearOpMode {
         try {
             double velocityTicksPerSec = shootMotor.getVelocity();
             double ticksPerRev = shootMotor.getMotorType().getTicksPerRev();
+            
+            // Debug: store raw values for telemetry
+            telemetry.addData("DEBUG Shooter Velocity", "%.1f ticks/sec", velocityTicksPerSec);
+            telemetry.addData("DEBUG Ticks Per Rev", "%.0f", ticksPerRev);
+            telemetry.addData("DEBUG Motor Type", shootMotor.getMotorType().toString());
+            
             if (ticksPerRev == 0) {
+                telemetry.addData("DEBUG ERROR", "Ticks per rev is ZERO!");
                 return 0;  // Prevent division by zero
             }
+            // Correct RPM formula: (ticks/sec * 60 sec/min) / (ticks/rev) = revolutions/min
             return Math.abs(velocityTicksPerSec * 60.0 / ticksPerRev);
         } catch (Exception e) {
             // Return 0 if there's any issue reading velocity
+            telemetry.addData("DEBUG ERROR", e.getMessage());
             return 0;
         }
     }
@@ -315,8 +327,8 @@ public class DriveTestTeleOp5 extends LinearOpMode {
     /**
      * Handle intake and shooter motor controls via bumpers and triggers
      * Both gamepad1 and gamepad2 can control accessories
-     * X button reverses intake and shooter to clear jams
-     * Indexers only activate when shooter reaches minimum RPM (velocity-based)
+     * X button reverses ALL motors (intake, shooter, and BOTH indexers) to clear jams
+     * In normal mode: Indexers only activate when shooter reaches minimum RPM (velocity-based)
      */
     private void handleAccessoryMotors() {
         // Check if X button is pressed for reverse mode (jam clearing)
@@ -353,16 +365,24 @@ public class DriveTestTeleOp5 extends LinearOpMode {
         }
         
         // L1 (left bumper) controls left index motor - only if shooter is at speed
+        // X button (reverse mode) overrides and spins indexers in reverse to clear jams
         boolean leftBumperPressed = gamepad1.left_bumper || gamepad2.left_bumper;
-        if (leftBumperPressed && shooterCurrentlyAtSpeed) {
+        if (reverseMode) {
+            // In reverse mode, spin left indexer backwards to clear jams
+            leftIndexMotor.setPower(-1.0);
+        } else if (leftBumperPressed && shooterCurrentlyAtSpeed) {
             leftIndexMotor.setPower(1.0);
         } else {
             leftIndexMotor.setPower(0);
         }
 
         // R1 (right bumper) controls right index motor - only if shooter is at speed
+        // X button (reverse mode) overrides and spins indexers in reverse to clear jams
         boolean rightBumperPressed = gamepad1.right_bumper || gamepad2.right_bumper;
-        if (rightBumperPressed && shooterCurrentlyAtSpeed) {
+        if (reverseMode) {
+            // In reverse mode, spin right indexer backwards to clear jams
+            rightIndexMotor.setPower(-1.0);
+        } else if (rightBumperPressed && shooterCurrentlyAtSpeed) {
             rightIndexMotor.setPower(1.0);
         } else {
             rightIndexMotor.setPower(0);
