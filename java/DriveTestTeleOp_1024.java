@@ -114,6 +114,7 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         shootMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         shootMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shootMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shootMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftIndexMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightIndexMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
