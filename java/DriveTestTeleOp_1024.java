@@ -45,6 +45,7 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
     // Shooter and indexer safety constants
     private static final double MIN_SHOOTER_VELOCITY = 1050;  // Minimum shooter velocity (ticks/sec) before indexers can activate (adjust based on your shooter)
     private static final double MAX_SHOOTER_VELOCITY = 1200;  // Maximum shooter velocity (ticks/sec) to prevent motor from spinning too fast (adjust based on your shooter)
+    private static final double MAX_REVERSE_VELOCITY = 800;  // Maximum reverse velocity (ticks/sec) when clearing jams (adjust based on your shooter)
     private static final double VELOCITY_TOLERANCE = 0;     // Velocity tolerance for "at speed" detection (hysteresis to prevent jitter)
     
     // Shooter state tracking
@@ -275,7 +276,11 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
             telemetry.addData("Accessories", "");
             boolean reverseActive = gamepad1.x || gamepad2.x;
             if (reverseActive) {
-                telemetry.addData("  MODE", "⚠️ REVERSE - ALL MOTORS REVERSING!");
+                if (currentShooterVelocity >= MAX_REVERSE_VELOCITY * 0.90) {
+                    telemetry.addData("  MODE", "⚠️ REVERSE - VELOCITY LIMITED! %.0f/%.0f ticks/sec", currentShooterVelocity, MAX_REVERSE_VELOCITY);
+                } else {
+                    telemetry.addData("  MODE", "⚠️ REVERSE - ALL MOTORS REVERSING! (%.0f ticks/sec)", currentShooterVelocity);
+                }
             }
             
             // Display shooter velocity and status (using actual state from handleAccessoryMotors)
@@ -354,7 +359,21 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         currentShooterVelocity = getShooterVelocity();
         
         if (reverseMode) {
-            shootMotor.setPower(-1.0);  // Full reverse when X is pressed
+            // Limit reverse velocity to prevent motor damage during jam clearing
+            double reversePower = -1.0;
+            if (currentShooterVelocity >= MAX_REVERSE_VELOCITY) {
+                // At or above max reverse velocity - cut power to prevent further acceleration
+                reversePower = 0;
+            } else if (currentShooterVelocity >= MAX_REVERSE_VELOCITY * 0.95) {
+                // Within 5% of max reverse velocity - reduce power proportionally
+                double velocityRatio = (MAX_REVERSE_VELOCITY - currentShooterVelocity) / (MAX_REVERSE_VELOCITY * 0.05);
+                reversePower = -1.0 * velocityRatio;
+            } else if (currentShooterVelocity >= MAX_REVERSE_VELOCITY * 0.90) {
+                // Within 10% of max reverse velocity - cap power at -0.5
+                reversePower = -0.5;
+            }
+            
+            shootMotor.setPower(reversePower);
             shooterWasAtSpeed = false;  // Reset hysteresis state when reversing
             brakingStartTime = 0;  // Cancel any active braking
         } else {
