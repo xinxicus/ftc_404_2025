@@ -43,19 +43,19 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
     private DcMotor rightIndexMotor;
     
     // Shooter and indexer safety constants
-    private static final double MIN_SHOOTER_RPM = 21;  // Minimum shooter RPM before indexers can activate (adjust based on your shooter)
-    private static final double MAX_SHOOTER_RPM = 23;  // Maximum shooter RPM to prevent motor from spinning too fast (adjust based on your shooter)
-    private static final double RPM_TOLERANCE = 0;     // RPM tolerance for "at speed" detection (hysteresis to prevent jitter)
+    private static final double MIN_SHOOTER_VELOCITY = 1050;  // Minimum shooter velocity (ticks/sec) before indexers can activate (adjust based on your shooter)
+    private static final double MAX_SHOOTER_VELOCITY = 1200;  // Maximum shooter velocity (ticks/sec) to prevent motor from spinning too fast (adjust based on your shooter)
+    private static final double VELOCITY_TOLERANCE = 0;     // Velocity tolerance for "at speed" detection (hysteresis to prevent jitter)
     
     // Shooter state tracking
     private boolean shooterWasAtSpeed = false;  // Track previous state for hysteresis
     private boolean shooterCurrentlyAtSpeed = false;  // Current state for telemetry display
-    private double currentShooterRPM = 0;  // Current RPM for telemetry display
+    private double currentShooterVelocity = 0;  // Current velocity (ticks/sec) for telemetry display
     
     // Active braking for shooter motor
     private double lastShooterTrigger = 0;  // Track previous trigger value to detect release
     private long brakingStartTime = 0;  // Time when braking started
-    private static final long BRAKING_DURATION_MS = 150;  // How long to apply reverse power (milliseconds)
+    private static final long BRAKING_DURATION_MS = 1100;  // How long to apply reverse power (milliseconds)
     private static final double BRAKING_POWER = -0.8;  // How hard to brake (range: -0.3 to -1.0, more negative = stronger braking)
 
     // optional: simple pose integration (encoders + IMU)
@@ -278,23 +278,23 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
                 telemetry.addData("  MODE", "⚠️ REVERSE - ALL MOTORS REVERSING!");
             }
             
-            // Display shooter RPM and status (using actual state from handleAccessoryMotors)
-            if (currentShooterRPM >= MAX_SHOOTER_RPM * 0.95) {
-                // Show warning when approaching or at max RPM
-                telemetry.addData("  Shooter", "⚠️ MAX RPM - %.0f/%.0f RPM (%.2f pwr)", currentShooterRPM, MAX_SHOOTER_RPM, shootMotor.getPower());
+            // Display shooter velocity and status (using actual state from handleAccessoryMotors)
+            if (currentShooterVelocity >= MAX_SHOOTER_VELOCITY * 0.95) {
+                // Show warning when approaching or at max velocity
+                telemetry.addData("  Shooter", "⚠️ MAX VELOCITY - %.0f/%.0f ticks/sec (%.2f pwr)", currentShooterVelocity, MAX_SHOOTER_VELOCITY, shootMotor.getPower());
                 if (shooterCurrentlyAtSpeed) {
                     telemetry.addData("  Indexers", "ENABLED - Press L1/R1");
                 } else {
-                    telemetry.addData("  Indexers", "LOCKED - Need %.0f RPM", MIN_SHOOTER_RPM);
+                    telemetry.addData("  Indexers", "LOCKED - Need %.0f ticks/sec", MIN_SHOOTER_VELOCITY);
                 }
             } else if (shooterCurrentlyAtSpeed) {
-                telemetry.addData("  Shooter", "✓ READY - %.0f RPM (%.2f pwr)", currentShooterRPM, shootMotor.getPower());
+                telemetry.addData("  Shooter", "✓ READY - %.0f ticks/sec (%.2f pwr)", currentShooterVelocity, shootMotor.getPower());
                 telemetry.addData("  Indexers", "ENABLED - Press L1/R1");
             } else if (shootMotor.getPower() > 0.1) {
-                telemetry.addData("  Shooter", "⏱ SPINNING UP - %.0f/%.0f RPM", currentShooterRPM, MIN_SHOOTER_RPM);
-                telemetry.addData("  Indexers", "LOCKED - Need %.0f RPM", MIN_SHOOTER_RPM);
+                telemetry.addData("  Shooter", "⏱ SPINNING UP - %.0f/%.0f ticks/sec", currentShooterVelocity, MIN_SHOOTER_VELOCITY);
+                telemetry.addData("  Indexers", "LOCKED - Need %.0f ticks/sec", MIN_SHOOTER_VELOCITY);
             } else {
-                telemetry.addData("  Shooter", "%.2f pwr (%.0f RPM)", shootMotor.getPower(), currentShooterRPM);
+                telemetry.addData("  Shooter", "%.2f pwr (%.0f ticks/sec)", shootMotor.getPower(), currentShooterVelocity);
                 telemetry.addData("  Indexers", "LOCKED - Shooter not active");
             }
             
@@ -317,25 +317,17 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
     }
     
     /**
-     * Get the current shooter motor RPM
-     * Returns 0 if motor type is not configured
+     * Get the current shooter motor velocity in ticks per second
+     * Returns 0 if there's any issue reading velocity
      */
-    private double getShooterRPM() {
+    private double getShooterVelocity() {
         try {
             double velocityTicksPerSec = shootMotor.getVelocity();
-            double ticksPerRev = shootMotor.getMotorType().getTicksPerRev();
             
             // Debug: store raw values for telemetry
             telemetry.addData("DEBUG Shooter Velocity", "%.1f ticks/sec", velocityTicksPerSec);
-            telemetry.addData("DEBUG Ticks Per Rev", "%.0f", ticksPerRev);
-            telemetry.addData("DEBUG Motor Type", shootMotor.getMotorType().toString());
             
-            if (ticksPerRev == 0) {
-                telemetry.addData("DEBUG ERROR", "Ticks per rev is ZERO!");
-                return 0;  // Prevent division by zero
-            }
-            // Correct RPM formula: (ticks/sec * 60 sec/min) / (ticks/rev) = revolutions/min
-            return Math.abs(velocityTicksPerSec * 60.0 / ticksPerRev);
+            return Math.abs(velocityTicksPerSec);
         } catch (Exception e) {
             // Return 0 if there's any issue reading velocity
             telemetry.addData("DEBUG ERROR", e.getMessage());
@@ -347,7 +339,7 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
      * Handle intake and shooter motor controls via bumpers and triggers
      * Both gamepad1 and gamepad2 can control accessories
      * X button reverses ALL motors (intake, shooter, and BOTH indexers) to clear jams
-     * In normal mode: Indexers only activate when shooter reaches minimum RPM (velocity-based)
+     * In normal mode: Indexers only activate when shooter reaches minimum velocity (velocity-based)
      */
     private void handleAccessoryMotors() {
         // Check if X button is pressed for reverse mode (jam clearing)
@@ -358,8 +350,8 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         double shooterTrigger = Math.max(gamepad1.right_trigger, gamepad2.right_trigger);
         long currentTime = System.currentTimeMillis();
         
-        // Read actual shooter velocity (RPM) from encoder - do this once per loop
-        currentShooterRPM = getShooterRPM();
+        // Read actual shooter velocity (ticks/sec) from encoder - do this once per loop
+        currentShooterVelocity = getShooterVelocity();
         
         if (reverseMode) {
             shootMotor.setPower(-1.0);  // Full reverse when X is pressed
@@ -387,15 +379,18 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
                 // Either normal operation or braking period ended
                 brakingStartTime = 0;  // Clear braking state
                 
-                // Limit power if RPM is approaching or exceeding maximum
+                // Limit power if velocity is approaching or exceeding maximum
                 double adjustedPower = shooterTrigger;
-                if (currentShooterRPM >= MAX_SHOOTER_RPM) {
-                    // At or above max RPM - cut power significantly
-                    adjustedPower = 0;
-                } else if (currentShooterRPM >= MAX_SHOOTER_RPM * 0.95) {
-                    // Within 5% of max RPM - reduce power proportionally
-                    double rpmRatio = (MAX_SHOOTER_RPM - currentShooterRPM) / (MAX_SHOOTER_RPM * 0.05);
-                    adjustedPower = shooterTrigger * rpmRatio;
+                if (currentShooterVelocity >= MAX_SHOOTER_VELOCITY) {
+                    // At or above max velocity - apply negative power to actively brake
+                    adjustedPower = -0.1;  // Light braking to prevent further acceleration
+                } else if (currentShooterVelocity >= MAX_SHOOTER_VELOCITY * 0.95) {
+                    // Within 5% of max velocity - reduce power proportionally
+                    double velocityRatio = (MAX_SHOOTER_VELOCITY - currentShooterVelocity) / (MAX_SHOOTER_VELOCITY * 0.05);
+                    adjustedPower = shooterTrigger * velocityRatio;
+                } else if (currentShooterVelocity >= MAX_SHOOTER_VELOCITY * 0.90) {
+                    // Within 10% of max velocity - cap power to prevent overspeed
+                    adjustedPower = Math.min(shooterTrigger, 0.5);
                 }
                 
                 shootMotor.setPower(adjustedPower);
@@ -404,20 +399,20 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         
         lastShooterTrigger = shooterTrigger;  // Remember for next iteration
         
-        // Use hysteresis to prevent jitter when RPM fluctuates near threshold
-        // If currently OFF: need to reach MIN_SHOOTER_RPM to turn ON
-        // If currently ON: stay ON until drops below (MIN_SHOOTER_RPM - RPM_TOLERANCE)
+        // Use hysteresis to prevent jitter when velocity fluctuates near threshold
+        // If currently OFF: need to reach MIN_SHOOTER_VELOCITY to turn ON
+        // If currently ON: stay ON until drops below (MIN_SHOOTER_VELOCITY - VELOCITY_TOLERANCE)
         if (reverseMode || shooterTrigger < 0.05) {
             // Reset state if not actively shooting
             shooterCurrentlyAtSpeed = false;
             shooterWasAtSpeed = false;
         } else if (shooterWasAtSpeed) {
             // Already at speed, only turn off if drops significantly below threshold
-            shooterCurrentlyAtSpeed = currentShooterRPM >= (MIN_SHOOTER_RPM - RPM_TOLERANCE);
+            shooterCurrentlyAtSpeed = currentShooterVelocity >= (MIN_SHOOTER_VELOCITY - VELOCITY_TOLERANCE);
             shooterWasAtSpeed = shooterCurrentlyAtSpeed;
         } else {
             // Not at speed yet, need to reach full threshold
-            shooterCurrentlyAtSpeed = currentShooterRPM >= MIN_SHOOTER_RPM;
+            shooterCurrentlyAtSpeed = currentShooterVelocity >= MIN_SHOOTER_VELOCITY;
             shooterWasAtSpeed = shooterCurrentlyAtSpeed;
         }
         
