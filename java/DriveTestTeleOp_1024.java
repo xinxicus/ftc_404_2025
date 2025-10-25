@@ -271,10 +271,10 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
             telemetry.addData("Drive", fieldCentric ? "FIELD" : "ROBOT");
             telemetry.addData("Pose", "x=%.1f in, y=%.1f in, h=%.1f°",
                     x, y, Math.toDegrees(heading));
-            telemetry.addData("Hint", "A:AprilTag, B:Field/Robot, Y:Reset, X:Reverse(Clear Jams)");
+            telemetry.addData("Hint", "A:AprilTag, B:Field/Robot, Y:Reset, L2:Reverse(Clear Jams)");
             telemetry.addData("", "");
             telemetry.addData("Accessories", "");
-            boolean reverseActive = gamepad1.x || gamepad2.x;
+            boolean reverseActive = gamepad1.left_trigger > 0.5 || gamepad2.left_trigger > 0.5;
             if (reverseActive) {
                 if (currentShooterVelocity >= MAX_REVERSE_VELOCITY * 0.90) {
                     telemetry.addData("  MODE", "⚠️ REVERSE - VELOCITY LIMITED! %.0f/%.0f ticks/sec", currentShooterVelocity, MAX_REVERSE_VELOCITY);
@@ -343,15 +343,15 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
     /**
      * Handle intake and shooter motor controls via bumpers and triggers
      * Both gamepad1 and gamepad2 can control accessories
-     * X button reverses ALL motors (intake, shooter, and BOTH indexers) to clear jams
+     * L2 (left trigger) reverses ALL motors (intake, shooter, and BOTH indexers) to clear jams
      * In normal mode: Indexers only activate when shooter reaches minimum velocity (velocity-based)
      */
     private void handleAccessoryMotors() {
-        // Check if X button is pressed for reverse mode (jam clearing)
-        boolean reverseMode = gamepad1.x || gamepad2.x;
+        // Check if L2 (left trigger) is pressed for reverse mode (jam clearing)
+        boolean reverseMode = gamepad1.left_trigger > 0.5 || gamepad2.left_trigger > 0.5;
         
         // R2 (right trigger) controls shooter motor - use max of both controllers
-        // X button reverses shooter for jam clearing
+        // L2 (left trigger) reverses shooter for jam clearing
         double shooterTrigger = Math.max(gamepad1.right_trigger, gamepad2.right_trigger);
         long currentTime = System.currentTimeMillis();
         
@@ -436,7 +436,7 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         }
         
         // L1 (left bumper) controls left index motor - only if shooter is at speed
-        // X button (reverse mode) overrides and spins indexers in reverse to clear jams
+        // L2 (left trigger, reverse mode) overrides and spins indexers in reverse to clear jams
         boolean leftBumperPressed = gamepad1.left_bumper || gamepad2.left_bumper;
         if (reverseMode) {
             // In reverse mode, spin left indexer backwards to clear jams
@@ -448,7 +448,7 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         }
 
         // R1 (right bumper) controls right index motor - only if shooter is at speed
-        // X button (reverse mode) overrides and spins indexers in reverse to clear jams
+        // L2 (left trigger, reverse mode) overrides and spins indexers in reverse to clear jams
         boolean rightBumperPressed = gamepad1.right_bumper || gamepad2.right_bumper;
         if (reverseMode) {
             // In reverse mode, spin right indexer backwards to clear jams
@@ -459,13 +459,13 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
             rightIndexMotor.setPower(0);
         }
 
-        // L2 (left trigger) controls intake motor - use max of both controllers
-        // X button stops intake in reverse mode
-        double intakeTrigger = Math.max(gamepad1.left_trigger, gamepad2.left_trigger);
+        // X button controls intake motor - use OR logic for both controllers
+        // L2 (left trigger) stops intake in reverse mode
+        boolean intakePressed = gamepad1.x || gamepad2.x;
         if (reverseMode) {
-            intakeMotor.setPower(0.0);  // Stop intake when X is pressed
+            intakeMotor.setPower(0.0);  // Stop intake when L2 is pressed
         } else {
-            intakeMotor.setPower(intakeTrigger);
+            intakeMotor.setPower(intakePressed ? 1.0 : 0.0);
         }
     }
 
