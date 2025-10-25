@@ -43,13 +43,20 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
     private DcMotor rightIndexMotor;
     
     // Shooter and indexer safety constants
-    private static final double MIN_SHOOTER_RPM = 20;  // Minimum shooter RPM before indexers can activate (adjust based on your shooter)
+    private static final double MIN_SHOOTER_RPM = 21;  // Minimum shooter RPM before indexers can activate (adjust based on your shooter)
+    private static final double MAX_SHOOTER_RPM = 23;  // Maximum shooter RPM to prevent motor from spinning too fast (adjust based on your shooter)
     private static final double RPM_TOLERANCE = 0;     // RPM tolerance for "at speed" detection (hysteresis to prevent jitter)
     
     // Shooter state tracking
     private boolean shooterWasAtSpeed = false;  // Track previous state for hysteresis
     private boolean shooterCurrentlyAtSpeed = false;  // Current state for telemetry display
     private double currentShooterRPM = 0;  // Current RPM for telemetry display
+    
+    // Active braking for shooter motor
+    private double lastShooterTrigger = 0;  // Track previous trigger value to detect release
+    private long brakingStartTime = 0;  // Time when braking started
+    private static final long BRAKING_DURATION_MS = 150;  // How long to apply reverse power (milliseconds)
+    private static final double BRAKING_POWER = -0.8;  // How hard to brake (range: -0.3 to -1.0, more negative = stronger braking)
 
     // optional: simple pose integration (encoders + IMU)
     private double x=0, y=0, heading=0;
@@ -272,7 +279,15 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
             }
             
             // Display shooter RPM and status (using actual state from handleAccessoryMotors)
-            if (shooterCurrentlyAtSpeed) {
+            if (currentShooterRPM >= MAX_SHOOTER_RPM * 0.95) {
+                // Show warning when approaching or at max RPM
+                telemetry.addData("  Shooter", "⚠️ MAX RPM - %.0f/%.0f RPM (%.2f pwr)", currentShooterRPM, MAX_SHOOTER_RPM, shootMotor.getPower());
+                if (shooterCurrentlyAtSpeed) {
+                    telemetry.addData("  Indexers", "ENABLED - Press L1/R1");
+                } else {
+                    telemetry.addData("  Indexers", "LOCKED - Need %.0f RPM", MIN_SHOOTER_RPM);
+                }
+            } else if (shooterCurrentlyAtSpeed) {
                 telemetry.addData("  Shooter", "✓ READY - %.0f RPM (%.2f pwr)", currentShooterRPM, shootMotor.getPower());
                 telemetry.addData("  Indexers", "ENABLED - Press L1/R1");
             } else if (shootMotor.getPower() > 0.1) {
@@ -341,15 +356,53 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         // R2 (right trigger) controls shooter motor - use max of both controllers
         // X button reverses shooter for jam clearing
         double shooterTrigger = Math.max(gamepad1.right_trigger, gamepad2.right_trigger);
+        long currentTime = System.currentTimeMillis();
+        
+        // Read actual shooter velocity (RPM) from encoder - do this once per loop
+        currentShooterRPM = getShooterRPM();
+        
         if (reverseMode) {
             shootMotor.setPower(-1.0);  // Full reverse when X is pressed
             shooterWasAtSpeed = false;  // Reset hysteresis state when reversing
+            brakingStartTime = 0;  // Cancel any active braking
         } else {
-            shootMotor.setPower(shooterTrigger);
+            // Detect when trigger is released (was pressed, now released)
+            boolean triggerJustReleased = (lastShooterTrigger > 0.1 && shooterTrigger < 0.05);
+            
+            if (triggerJustReleased) {
+                // Start active braking when trigger is released
+                brakingStartTime = currentTime;
+            }
+            
+            // Cancel braking if user presses trigger again during braking period
+            if (shooterTrigger > 0.1 && brakingStartTime > 0) {
+                brakingStartTime = 0;  // Cancel braking immediately
+            }
+            
+            // Check if we're in the braking period
+            if (brakingStartTime > 0 && (currentTime - brakingStartTime) < BRAKING_DURATION_MS) {
+                // Apply reverse power to brake quickly
+                shootMotor.setPower(BRAKING_POWER);
+            } else {
+                // Either normal operation or braking period ended
+                brakingStartTime = 0;  // Clear braking state
+                
+                // Limit power if RPM is approaching or exceeding maximum
+                double adjustedPower = shooterTrigger;
+                if (currentShooterRPM >= MAX_SHOOTER_RPM) {
+                    // At or above max RPM - cut power significantly
+                    adjustedPower = 0;
+                } else if (currentShooterRPM >= MAX_SHOOTER_RPM * 0.95) {
+                    // Within 5% of max RPM - reduce power proportionally
+                    double rpmRatio = (MAX_SHOOTER_RPM - currentShooterRPM) / (MAX_SHOOTER_RPM * 0.05);
+                    adjustedPower = shooterTrigger * rpmRatio;
+                }
+                
+                shootMotor.setPower(adjustedPower);
+            }
         }
         
-        // Read actual shooter velocity (RPM) from encoder
-        currentShooterRPM = getShooterRPM();
+        lastShooterTrigger = shooterTrigger;  // Remember for next iteration
         
         // Use hysteresis to prevent jitter when RPM fluctuates near threshold
         // If currently OFF: need to reach MIN_SHOOTER_RPM to turn ON
@@ -393,10 +446,10 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         }
 
         // L2 (left trigger) controls intake motor - use max of both controllers
-        // X button reverses intake for jam clearing
+        // X button stops intake in reverse mode
         double intakeTrigger = Math.max(gamepad1.left_trigger, gamepad2.left_trigger);
         if (reverseMode) {
-            intakeMotor.setPower(-1.0);  // Full reverse when X is pressed
+            intakeMotor.setPower(0.0);  // Stop intake when X is pressed
         } else {
             intakeMotor.setPower(intakeTrigger);
         }
