@@ -68,11 +68,14 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
     private boolean prevB=false, prevY=false;
 
     // AprilTag variables and constants
-    final double DESIRED_DISTANCE = 48.0; 
+    final double DESIRED_DISTANCE = 55.0; 
     final double SPEED_GAIN =   0.035 ;   
     final double TURN_GAIN  =   0.017;   
     final double MAX_AUTO_SPEED = 0.75;   
-    final double MAX_AUTO_TURN  = 0.25;  
+    final double MAX_AUTO_TURN  = 0.25;
+    // Camera offset compensation (camera is not at robot center)
+    final double BEARING_OFFSET = 14.0;  // degrees - adjust robot angle offset
+    final double YAW_OFFSET = 11.0;       // degrees - adjust lateral alignment offset
     private static final boolean USE_WEBCAM = true;  
     private static final int DESIRED_TAG_ID = 20;    
     private VisionPortal visionPortal;               
@@ -142,41 +145,9 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            // AprilTag detection variables
-            boolean targetFound = false;
-            desiredTag = null;
-
-            // Step through the list of detected tags and look for a matching tag
-            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-            for (AprilTagDetection detection : currentDetections) {
-                // Look to see if we have size info on this tag.
-                if (detection.metadata != null) {
-                    //  Check to see if we want to track towards this tag.
-                    if ((DESIRED_TAG_ID < 0) || (detection.id == DESIRED_TAG_ID)) {
-                        // Yes, we want to use this tag.
-                        targetFound = true;
-                        desiredTag = detection;
-                        break;  // don't look any further.
-                    } else {
-                        // This tag is in the library, but we do not want to track it right now.
-                        telemetry.addData("Skipping", "Tag ID %d is not desired", detection.id);
-                    }
-                } else {
-                    // This tag is NOT in the library, so we don't have enough information to track to it.
-                    telemetry.addData("Unknown", "Tag ID %d is not in TagLibrary", detection.id);
-                }
-            }
-
-            // Display AprilTag status
-            if (targetFound) {
-                telemetry.addData("\n>","HOLD A Button to Drive to Target\n");
-                telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
-                telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
-                telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
-                telemetry.addData("Yaw","%3.0f degrees", desiredTag.ftcPose.yaw);
-            } else {
-                telemetry.addData("\n>","Drive using joysticks to find valid target\n");
-            }
+            // AprilTag detection
+            boolean targetFound = detectAprilTag();
+            displayAprilTagStatus(targetFound);
             // --- (optional) pose update ---
             YawPitchRollAngles ypr = imu.getRobotYawPitchRollAngles();
             double imuYaw = ypr.getYaw(AngleUnit.RADIANS);
@@ -202,18 +173,13 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
             // --- driving: check for AprilTag auto-drive or manual control ---
             double fwd, str, yaw;
             
-            // Either controller can activate AprilTag auto-drive with A button
-            if ((gamepad1.a || gamepad2.a) && targetFound) {
-                // AprilTag auto-drive mode (activated by A button)
-                double rangeError = (desiredTag.ftcPose.range - DESIRED_DISTANCE);
-                double yawError = (desiredTag.ftcPose.yaw);
-                double headingError = desiredTag.ftcPose.bearing;
-                
-                fwd = Range.clip(rangeError * SPEED_GAIN, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-                str = Range.clip(yawError * SPEED_GAIN, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-                yaw = -Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-                
-                telemetry.addData("Auto","Drive %5.2f, Strafe %5.2f, Turn %5.2f", fwd, str, yaw);
+            // Try AprilTag auto-drive first (A button on either controller)
+            double[] autoDriveCommands = getAutoDriveCommands(targetFound);
+            if (autoDriveCommands != null) {
+                // AprilTag auto-drive mode is active
+                fwd = autoDriveCommands[0];
+                str = autoDriveCommands[1];
+                yaw = autoDriveCommands[2];
             } else {
                 // Manual control mode - combine inputs from both controllers
                 double y1 = -gamepad1.left_stick_y;
@@ -532,6 +498,81 @@ public class DriveTestTeleOp_1024 extends LinearOpMode {
             telemetry.addData("Camera", "Ready");
             telemetry.update();
         }
+    }
+    
+    /**
+     * Detect AprilTag and set desiredTag if found
+     * @return true if the desired tag is found, false otherwise
+     */
+    private boolean detectAprilTag() {
+        desiredTag = null;
+        
+        // Step through the list of detected tags and look for a matching tag
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        for (AprilTagDetection detection : currentDetections) {
+            // Look to see if we have size info on this tag.
+            if (detection.metadata != null) {
+                //  Check to see if we want to track towards this tag.
+                if ((DESIRED_TAG_ID < 0) || (detection.id == DESIRED_TAG_ID)) {
+                    // Yes, we want to use this tag.
+                    desiredTag = detection;
+                    return true;  // Target found
+                } else {
+                    // This tag is in the library, but we do not want to track it right now.
+                    telemetry.addData("Skipping", "Tag ID %d is not desired", detection.id);
+                }
+            } else {
+                // This tag is NOT in the library, so we don't have enough information to track to it.
+                telemetry.addData("Unknown", "Tag ID %d is not in TagLibrary", detection.id);
+            }
+        }
+        
+        return false;  // No target found
+    }
+    
+    /**
+     * Display AprilTag detection status to telemetry
+     * @param targetFound whether a valid target was detected
+     */
+    private void displayAprilTagStatus(boolean targetFound) {
+        if (targetFound) {
+            telemetry.addData("\n>","HOLD A Button to Drive to Target\n");
+            telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
+            telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
+            telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
+            telemetry.addData("Yaw","%3.0f degrees", desiredTag.ftcPose.yaw);
+        } else {
+            telemetry.addData("\n>","Drive using joysticks to find valid target\n");
+        }
+    }
+    
+    /**
+     * Calculate auto-drive commands based on AprilTag position
+     * @param targetFound whether a valid target was detected
+     * @return double array [fwd, str, yaw] if auto-drive is active, null otherwise
+     */
+    private double[] getAutoDriveCommands(boolean targetFound) {
+        // Either controller can activate AprilTag auto-drive with A button
+        if ((gamepad1.a || gamepad2.a) && targetFound) {
+            // AprilTag auto-drive mode (activated by A button)
+            // Apply camera offset compensation (camera is not at robot center)
+            double rangeError = (desiredTag.ftcPose.range - DESIRED_DISTANCE);
+            double yawError = (desiredTag.ftcPose.yaw - YAW_OFFSET);        // Compensate for camera lateral offset
+            double headingError = (desiredTag.ftcPose.bearing - BEARING_OFFSET);  // Compensate for camera angular offset
+            
+            double fwd = Range.clip(rangeError * SPEED_GAIN, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+            double str = Range.clip(yawError * SPEED_GAIN, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+            double yaw = -Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+            
+            telemetry.addData("Auto","Drive %5.2f, Strafe %5.2f, Turn %5.2f", fwd, str, yaw);
+            telemetry.addData("DEBUG Range", "%.1f\" (target: %.1f\")", desiredTag.ftcPose.range, DESIRED_DISTANCE);
+            telemetry.addData("DEBUG Yaw", "%.1f° (offset: %.1f°, error: %.1f°)", desiredTag.ftcPose.yaw, YAW_OFFSET, yawError);
+            telemetry.addData("DEBUG Bearing", "%.1f° (offset: %.1f°, error: %.1f°)", desiredTag.ftcPose.bearing, BEARING_OFFSET, headingError);
+            
+            return new double[]{fwd, str, yaw};
+        }
+        
+        return null;  // Auto-drive not active
     }
     
 }
