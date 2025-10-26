@@ -43,8 +43,9 @@ public class DriveTestTeleOp_1026 extends LinearOpMode {
     private DcMotor rightIndexMotor;
     
     // Shooter and indexer safety constants
-    private static final double SHOOTER_VELOCITY = 1080;  // Target shooter velocity (ticks/sec) - indexers activate when reached, motor limited at this speed
-    private static final double MAX_REVERSE_VELOCITY = 800;  // Maximum reverse velocity (ticks/sec) when clearing jams (adjust based on your shooter)
+    private static final double SHOOTER_VELOCITY = 1100;  // Maximum shooter velocity (ticks/sec) - motor limited at this speed
+    private static final double INDEXER_ACTIVATION_VELOCITY = 1075;  // Velocity threshold (ticks/sec) when indexers can activate
+    private static final double MAX_REVERSE_VELOCITY = 400;  // Maximum reverse velocity (ticks/sec) when clearing jams (adjust based on your shooter)
     private static final double VELOCITY_TOLERANCE = 0;     // Velocity tolerance for "at speed" detection (hysteresis to prevent jitter)
     
     // Shooter state tracking
@@ -255,14 +256,14 @@ public class DriveTestTeleOp_1026 extends LinearOpMode {
                 if (shooterCurrentlyAtSpeed) {
                     telemetry.addData("  Indexers", "ENABLED - Press L1/R1");
                 } else {
-                    telemetry.addData("  Indexers", "LOCKED - Need %.0f ticks/sec", SHOOTER_VELOCITY);
+                    telemetry.addData("  Indexers", "LOCKED - Need %.0f ticks/sec", INDEXER_ACTIVATION_VELOCITY);
                 }
             } else if (shooterCurrentlyAtSpeed) {
                 telemetry.addData("  Shooter", "✓ READY - %.0f ticks/sec (%.2f pwr)", currentShooterVelocity, shootMotor.getPower());
                 telemetry.addData("  Indexers", "ENABLED - Press L1/R1");
             } else if (shootMotor.getPower() > 0.1) {
                 telemetry.addData("  Shooter", "⏱ SPINNING UP - %.0f/%.0f ticks/sec", currentShooterVelocity, SHOOTER_VELOCITY);
-                telemetry.addData("  Indexers", "LOCKED - Need %.0f ticks/sec", SHOOTER_VELOCITY);
+                telemetry.addData("  Indexers", "LOCKED - Need %.0f ticks/sec", INDEXER_ACTIVATION_VELOCITY);
             } else {
                 telemetry.addData("  Shooter", "%.2f pwr (%.0f ticks/sec)", shootMotor.getPower(), currentShooterVelocity);
                 telemetry.addData("  Indexers", "LOCKED - Shooter not active");
@@ -384,19 +385,19 @@ public class DriveTestTeleOp_1026 extends LinearOpMode {
         lastShooterTrigger = shooterTrigger;  // Remember for next iteration
         
         // Use hysteresis to prevent jitter when velocity fluctuates near threshold
-        // If currently OFF: need to reach SHOOTER_VELOCITY to turn ON
-        // If currently ON: stay ON until drops below (SHOOTER_VELOCITY - VELOCITY_TOLERANCE)
+        // If currently OFF: need to reach INDEXER_ACTIVATION_VELOCITY to turn ON
+        // If currently ON: stay ON until drops below (INDEXER_ACTIVATION_VELOCITY - VELOCITY_TOLERANCE)
         if (reverseMode || shooterTrigger < 0.05) {
             // Reset state if not actively shooting
             shooterCurrentlyAtSpeed = false;
             shooterWasAtSpeed = false;
         } else if (shooterWasAtSpeed) {
             // Already at speed, only turn off if drops significantly below threshold
-            shooterCurrentlyAtSpeed = currentShooterVelocity >= (SHOOTER_VELOCITY - VELOCITY_TOLERANCE);
+            shooterCurrentlyAtSpeed = currentShooterVelocity >= (INDEXER_ACTIVATION_VELOCITY - VELOCITY_TOLERANCE);
             shooterWasAtSpeed = shooterCurrentlyAtSpeed;
         } else {
             // Not at speed yet, need to reach full threshold
-            shooterCurrentlyAtSpeed = currentShooterVelocity >= SHOOTER_VELOCITY;
+            shooterCurrentlyAtSpeed = currentShooterVelocity >= INDEXER_ACTIVATION_VELOCITY;
             shooterWasAtSpeed = shooterCurrentlyAtSpeed;
         }
         
