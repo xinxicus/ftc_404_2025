@@ -40,6 +40,10 @@ public class MecanumAutoOp_1026 extends LinearOpMode {
     private static final double STRAFE_SPEED = 0.5;     // Strafing speed
     private static final double POSITION_TOLERANCE = 2.0;  // inches
     private static final double HEADING_TOLERANCE = 2.0;   // degrees
+    
+    // ---- Control gains (tune these if robot is too slow or too aggressive) ----
+    private static final double POSITION_GAIN = 0.1;    // Increase if too slow (try 0.15, 0.2), decrease if overshoots
+    private static final double HEADING_GAIN = 0.5;     // Decrease if turns too sharp (try 0.3, 0.4), increase if too slow
 
     // ---- Mecanum drive motors ----
     private DcMotorEx fl, fr, bl, br;
@@ -239,10 +243,10 @@ public class MecanumAutoOp_1026 extends LinearOpMode {
             double robotErrorX = errorX * Math.cos(-heading) - errorY * Math.sin(-heading);
             double robotErrorY = errorX * Math.sin(-heading) + errorY * Math.cos(-heading);
             
-            // Calculate drive powers
-            double fwd = Range.clip(robotErrorX * 0.1, -DRIVE_SPEED, DRIVE_SPEED);
-            double str = Range.clip(robotErrorY * 0.1, -STRAFE_SPEED, STRAFE_SPEED);
-            double yaw = Range.clip(errorHeading * 0.5, -TURN_SPEED, TURN_SPEED);
+            // Calculate drive powers using proportional control
+            double fwd = Range.clip(robotErrorX * POSITION_GAIN, -DRIVE_SPEED, DRIVE_SPEED);
+            double str = Range.clip(robotErrorY * POSITION_GAIN, -STRAFE_SPEED, STRAFE_SPEED);
+            double yaw = Range.clip(errorHeading * HEADING_GAIN, -TURN_SPEED, TURN_SPEED);
             
             // Apply mecanum drive
             setDrivePower(fwd, str, yaw);
@@ -296,7 +300,7 @@ public class MecanumAutoOp_1026 extends LinearOpMode {
                 break;
             }
             
-            double yaw = Range.clip(errorHeading * 0.5, -TURN_SPEED, TURN_SPEED);
+            double yaw = Range.clip(errorHeading * HEADING_GAIN, -TURN_SPEED, TURN_SPEED);
             setDrivePower(0, 0, yaw);
             
             telemetry.addData("Target Heading", "%.1f°", targetDegrees);
