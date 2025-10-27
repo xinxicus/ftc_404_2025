@@ -71,7 +71,7 @@ public class DriveTestTeleOp_1026 extends LinearOpMode {
     final double DESIRED_DISTANCE = 55.0; 
     final double SPEED_GAIN =   0.035 ;   
     final double TURN_GAIN  =   0.017;   
-    final double MAX_AUTO_SPEED = 0.75;   
+    final double MAX_AUTO_SPEED = 0.55;   
     final double MAX_AUTO_TURN  = 0.25;
     // Camera offset compensation (camera is not at robot center)
     final double BEARING_OFFSET = 14.0;  // degrees - adjust robot angle offset
@@ -560,9 +560,18 @@ public class DriveTestTeleOp_1026 extends LinearOpMode {
             double yawError = (desiredTag.ftcPose.yaw - YAW_OFFSET);        // Compensate for camera lateral offset
             double headingError = (desiredTag.ftcPose.bearing - BEARING_OFFSET);  // Compensate for camera angular offset
             
+            // Increase turn gain when yawError is positive to help rotation keep up with strafe
+            double turnGain = TURN_GAIN;
+            double strGain = SPEED_GAIN;
+            if (yawError > 15) {
+                // Positive yaw error: increase turn response to prevent tag from leaving view
+                turnGain = TURN_GAIN * 1.0;  // Double the turn speed
+                strGain = strGain*1.0;
+            }
+            
             double fwd = Range.clip(rangeError * SPEED_GAIN, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-            double str = Range.clip(yawError * SPEED_GAIN, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-            double yaw = -Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+            double str = Range.clip(yawError * strGain, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
+            double yaw = -Range.clip(headingError * turnGain, -MAX_AUTO_TURN, MAX_AUTO_TURN);
             
             telemetry.addData("Auto","Drive %5.2f, Strafe %5.2f, Turn %5.2f", fwd, str, yaw);
             telemetry.addData("DEBUG Range", "%.1f\" (target: %.1f\")", desiredTag.ftcPose.range, DESIRED_DISTANCE);
