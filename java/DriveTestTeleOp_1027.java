@@ -58,6 +58,10 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
     private long brakingStartTime = 0;  // Time when braking started
     private static final long BRAKING_DURATION_MS = 1100;  // How long to apply reverse power (milliseconds)
     private static final double BRAKING_POWER = -0.8;  // How hard to brake (range: -0.3 to -1.0, more negative = stronger braking)
+    
+    // Drive power reduction when intake is running
+    private boolean intakeRunning = false;  // Track if intake is currently running
+    private static final double INTAKE_DRIVE_MULTIPLIER = 0.5;  // Reduce drive power to 50% when intake is active
 
     // optional: simple pose integration (encoders + IMU)
     private double x=0, y=0, heading=0;
@@ -145,6 +149,10 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
+            // Check input states once at the start of the loop for consistency
+            boolean reverseMode = gamepad1.left_trigger > 0.5 || gamepad2.left_trigger > 0.5;
+            boolean intakePressed = gamepad1.x || gamepad2.x;
+            
             // AprilTag detection
             boolean targetFound = detectAprilTag();
             displayAprilTagStatus(targetFound);
@@ -225,23 +233,37 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
                         Math.max(Math.abs(blPow), Math.abs(frPow))));
             max = Math.max(max, Math.abs(brPow));
             flPow/=max; blPow/=max; frPow/=max; brPow/=max;
+            
+            // Set intake running state (checked at start of loop)
+            intakeRunning = !reverseMode && intakePressed;
+            
+            // Apply drive power reduction when intake is running
+            if (intakeRunning) {
+                flPow *= INTAKE_DRIVE_MULTIPLIER;
+                blPow *= INTAKE_DRIVE_MULTIPLIER;
+                frPow *= INTAKE_DRIVE_MULTIPLIER;
+                brPow *= INTAKE_DRIVE_MULTIPLIER;
+            }
 
             fl.setPower(flPow);
             bl.setPower(blPow);
             fr.setPower(frPow);
             br.setPower(brPow);
             
-            // Handle accessory motors
-            handleAccessoryMotors();
+            // Handle accessory motors (pass input states for consistency)
+            handleAccessoryMotors(reverseMode, intakePressed);
 
             telemetry.addData("Drive", fieldCentric ? "FIELD" : "ROBOT");
+            if (intakeRunning) {
+                telemetry.addData("Drive Power", "⚠️ REDUCED (50%%) - Intake Active");
+            }
             telemetry.addData("Pose", "x=%.1f in, y=%.1f in, h=%.1f°",
                     x, y, Math.toDegrees(heading));
             telemetry.addData("Hint", "A:AprilTag, B:Field/Robot, Y:Reset, L2:Reverse(Clear Jams)");
             telemetry.addData("", "");
             telemetry.addData("Accessories", "");
-            boolean reverseActive = gamepad1.left_trigger > 0.5 || gamepad2.left_trigger > 0.5;
-            if (reverseActive) {
+            // Reuse reverseMode from earlier in the loop
+            if (reverseMode) {
                 if (currentShooterVelocity >= MAX_REVERSE_VELOCITY * 0.90) {
                     telemetry.addData("  MODE", "⚠️ REVERSE - VELOCITY LIMITED! %.0f/%.0f ticks/sec", currentShooterVelocity, MAX_REVERSE_VELOCITY);
                 } else {
@@ -311,10 +333,11 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
      * Both gamepad1 and gamepad2 can control accessories
      * L2 (left trigger) reverses ALL motors (intake, shooter, and BOTH indexers) to clear jams
      * In normal mode: Indexers only activate when shooter reaches minimum velocity (velocity-based)
+     * @param reverseMode true if L2 trigger is pressed (jam clearing mode)
+     * @param intakePressed true if X button is pressed (intake control)
      */
-    private void handleAccessoryMotors() {
-        // Check if L2 (left trigger) is pressed for reverse mode (jam clearing)
-        boolean reverseMode = gamepad1.left_trigger > 0.5 || gamepad2.left_trigger > 0.5;
+    private void handleAccessoryMotors(boolean reverseMode, boolean intakePressed) {
+        // Input states passed as parameters for consistency with drive control
         
         // R2 (right trigger) controls shooter motor - use max of both controllers
         // L2 (left trigger) reverses shooter for jam clearing
@@ -425,9 +448,9 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
             rightIndexMotor.setPower(0);
         }
 
-        // X button controls intake motor - use OR logic for both controllers
+        // X button controls intake motor
         // L2 (left trigger) stops intake in reverse mode
-        boolean intakePressed = gamepad1.x || gamepad2.x;
+        // Note: intakePressed is passed as parameter, intakeRunning is set at the start of the main loop
         if (reverseMode) {
             intakeMotor.setPower(0.0);  // Stop intake when L2 is pressed
         } else {
