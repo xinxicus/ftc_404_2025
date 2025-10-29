@@ -227,7 +227,7 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
             if (curLeftBumper && !prevLeftBumper && !autoModeActive) {
                 autoModeActive = true;
                 currentTest = "Shooting 2 sec";
-                shootSequence(2.0);
+                shootSequence(8.0);
                 autoModeActive = false;
                 currentTest = "Shoot Complete";
             }
@@ -244,7 +244,7 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
             if (curRightTrigger && !prevRightTrigger && !autoModeActive) {
                 autoModeActive = true;
                 currentTest = "Loading Balls";
-                loadBalls();
+                loadBalls(3);
                 autoModeActive = false;
                 currentTest = "Load Complete";
             }
@@ -263,10 +263,10 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
                 double str = gamepad1.left_stick_x;
                 double yaw = gamepad1.right_stick_x;
                 
-                // Apply field-centric transform
+                // Apply field-centric transform (inverse rotation)
                 double c = Math.cos(heading), s = Math.sin(heading);
-                double fwd2 = fwd * c - str * s;
-                double str2 = fwd * s + str * c;
+                double fwd2 = fwd * c + str * s;
+                double str2 = -fwd * s + str * c;
                 
                 setDrivePower(fwd2, str2, yaw);
             }
@@ -531,8 +531,8 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         
         // Shooting configuration
-        final double INDEXER_ACTIVE_TIME = 0.5;  // Each indexer active for 0.5 seconds
-        final double DELAY_BETWEEN_SHOTS = 0.3;  // 0.3 second delay between shots
+        final double INDEXER_ACTIVE_TIME = 0.3;  // Each indexer active for 0.5 seconds
+        final double DELAY_BETWEEN_SHOTS = 0.5;  // 0.3 second delay between shots
         
         // Start shooter motor
         shootMotor.setPower(1.0);
@@ -748,9 +748,8 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
      * Uses similar logic to reverseMode - checks if trigger button is pressed
      * Runs intake for a fixed duration to collect balls
      */
-    private void loadBalls(){
+    private void loadBalls(double load_duration){
         ElapsedTime timer = new ElapsedTime();
-        final double LOAD_DURATION = 3.0;  // Run intake for 3 seconds
         
         telemetry.addLine("🔄 Loading balls...");
         telemetry.update();
@@ -759,12 +758,12 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
         intakeMotor.setPower(1.0);
         
         timer.reset();
-        while (opModeIsActive() && timer.seconds() < LOAD_DURATION) {
+        while (opModeIsActive() && timer.seconds() < load_duration) {
             updatePose();  // Keep pose tracking updated
             
             telemetry.addData("Status", "🔄 LOADING BALLS");
             telemetry.addData("Intake", "RUNNING at 100%%");
-            telemetry.addData("Time", "%.1f / %.1f sec", timer.seconds(), LOAD_DURATION);
+            telemetry.addData("Time", "%.1f / %.1f sec", timer.seconds(), load_duration);
             telemetry.update();
             
             sleep(50);
