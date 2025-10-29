@@ -43,8 +43,8 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
     private DcMotor rightIndexMotor;
     
     // Shooter and indexer safety constants
-    private static final double SHOOTER_VELOCITY = 1100;  // Maximum shooter velocity (ticks/sec) - motor limited at this speed
-    private static final double INDEXER_ACTIVATION_VELOCITY = 1075;  // Velocity threshold (ticks/sec) when indexers can activate
+    private static final double SHOOTER_VELOCITY = 1200;  // Maximum shooter velocity (ticks/sec) - motor limited at this speed
+    private static final double INDEXER_ACTIVATION_VELOCITY = 1175;  // Velocity threshold (ticks/sec) when indexers can activate
     private static final double MAX_REVERSE_VELOCITY = 400;  // Maximum reverse velocity (ticks/sec) when clearing jams (adjust based on your shooter)
     private static final double VELOCITY_TOLERANCE = 0;     // Velocity tolerance for "at speed" detection (hysteresis to prevent jitter)
     
@@ -171,7 +171,7 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
             lastFL = cFL; lastFR = cFR; lastBL = cBL; lastBR = cBR;
 
             double dxR = (dFL + dFR + dBL + dBR)/4.0;
-            double dyR = (-dFL + dFR + dBL - dBR)/4.0 * LATERAL_MULTIPLIER;
+            double dyR = (dFL - dFR - dBL + dBR)/4.0 * LATERAL_MULTIPLIER;
 
             double hMid = heading + dTheta/2.0, c = Math.cos(hMid), s = Math.sin(hMid);
             x +=  dxR * c - dyR * s;

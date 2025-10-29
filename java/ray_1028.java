@@ -577,6 +577,11 @@ public class ray_1028 extends LinearOpMode {
                 leftIndexMotor.setPower(1.0);
             }
             
+            // Run intake motor for 3rd and 4th shots
+            if (shot >= 2) {
+                intakeMotor.setPower(1.0);
+            }
+            
             // Keep indexer active for specified time
             timer.reset();
             while (opModeIsActive() && timer.seconds() < INDEXER_ACTIVE_TIME) {
@@ -589,13 +594,17 @@ public class ray_1028 extends LinearOpMode {
                 telemetry.addData("📤 Active Indexer", currentIndexer);
                 telemetry.addData("🚀 Shot", "%d/4", shot + 1);
                 telemetry.addData("⏱️ Shot Time", "%.2f / %.2f sec", timer.seconds(), INDEXER_ACTIVE_TIME);
+                if (shot >= 2) {
+                    telemetry.addData("🔄 Intake", "RUNNING");
+                }
                 telemetry.update();
                 sleep(50);
             }
             
-            // Stop the indexer
+            // Stop the indexer and intake
             leftIndexMotor.setPower(0);
             rightIndexMotor.setPower(0);
+            intakeMotor.setPower(0);
             
             // Delay between shots (except after the last shot)
             if (shot < 3) {
