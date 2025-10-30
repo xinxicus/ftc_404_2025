@@ -54,7 +54,7 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
     private static final double SHOOTER_VELOCITY = 1100;
     private static final double INDEXER_ACTIVATION_VELOCITY = 1075;
     private static final double MAX_REVERSE_VELOCITY = 400;  // Maximum reverse velocity when clearing jams
-    
+  
     // ---- Pose tracking ----
     private double x = 0, y = 0, heading = 0;
     private double lastImuYaw = 0;
@@ -531,8 +531,12 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         
         // Shooting configuration
-        final double INDEXER_ACTIVE_TIME = 0.3;  // Each indexer active for 0.5 seconds
-        final double DELAY_BETWEEN_SHOTS = 0.5;  // 0.3 second delay between shots
+        final double INDEXER_ACTIVE_TIME = 1.0;  // Each indexer active for 0.5 seconds
+        final double DELAY_BETWEEN_SHOTS = 1.0;  // 0.3 second delay between shots
+        final double LOADBALLS_BEFORE_SHOT_DURATION = 1.0;  // Duration to load balls before 3rd and 4th shots (seconds)
+    
+        // run loadballs in 0.5 seconds before shooting
+        //loadBalls(0.5);
         
         // Start shooter motor
         shootMotor.setPower(1.0);
@@ -564,6 +568,14 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
         for (int shot = 0; shot < 4 && opModeIsActive(); shot++) {
             String currentIndexer = sequence[shot];
             
+            // Before 3rd and 4th shots, run loadballs for specified duration
+            if (shot == 2) {
+                telemetry.addLine(String.format("🔄 Loading balls before shot %d...", shot + 1));
+                telemetry.update();
+                intakeMotor.setPower(1.0);
+                sleep(LOADBALLS_BEFORE_SHOT_DURATION * 1000);
+            }
+            
             // Activate the appropriate indexer
             telemetry.addLine(String.format("🚀 Shot %d/4: %s INDEXER", shot + 1, currentIndexer));
             telemetry.update();
@@ -586,13 +598,17 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
                 telemetry.addData("📤 Active Indexer", currentIndexer);
                 telemetry.addData("🚀 Shot", "%d/4", shot + 1);
                 telemetry.addData("⏱️ Shot Time", "%.2f / %.2f sec", timer.seconds(), INDEXER_ACTIVE_TIME);
+                if (shot == 2 || shot == 3) {
+                    telemetry.addData("🔄 Intake", "RUNNING");
+                }
                 telemetry.update();
                 sleep(50);
             }
             
-            // Stop the indexer
+            // Stop the indexer and intake
             leftIndexMotor.setPower(0);
             rightIndexMotor.setPower(0);
+
             
             // Delay between shots (except after the last shot)
             if (shot < 3) {
@@ -618,6 +634,7 @@ public class AutoOpTestTeleOp_1028 extends LinearOpMode {
         shootMotor.setPower(0);
         leftIndexMotor.setPower(0);
         rightIndexMotor.setPower(0);
+        intakeMotor.setPower(0);
         
         telemetry.addLine("✓ Shooting sequence complete!");
         telemetry.update();
