@@ -202,10 +202,62 @@ public class RayTest2 extends LinearOpMode {
             
             if (curB && !prevB && !autoModeActive) {
                 autoModeActive = true;
-                currentTest = "Turn 90° Right";
-                double targetHeading = Math.toDegrees(heading) + 90;
-                turnToHeading(targetHeading, TURN_SPEED, 5.0);
-                autoModeActive = false;
+                
+                // Step 1: Move forward 10 inches
+                currentTest = "Drive Forward 10\"";
+                driveDistance(10, 0, DRIVE_SPEED, 5.0);
+                currentTest = "Forward Complete";
+                sleep(100);
+                
+                // Step 2: Scan for AprilTag and drive to it
+                currentTest = "Scanning for AprilTag";
+                if (scanForAprilTag(10.0)) {
+                    currentTest = "Tag Found - Driving";
+                    driveToAprilTag(10.0);
+                    currentTest = "AprilTag Complete";
+                } else {
+                    currentTest = "No AprilTag Found";
+                }
+                sleep(100);
+                
+                currentTest = "Shooting 8 sec";
+                shootSequence(8.0);
+                currentTest = "Shoot Complete";
+                sleep(100);
+                
+                // Reset pose
+                x = 0;
+                y = 0;
+                heading = 0;
+                imu.resetYaw();
+                lastImuYaw = 0;
+                currentTest = "Pose Reset";
+                sleep(1000);
+
+                currentTest = "Drive Backward to loading zone";
+                driveDistance(-76, -12, DRIVE_SPEED, 5.0);
+                currentTest = "Drive back Complete";
+                sleep(100);
+                
+                currentTest = "Reverse Mode - Clearing Jams";
+                reverseMode(5.0);  // Run reverse mode for 2 seconds
+                currentTest = "Reverse Complete";
+                sleep(100);
+                
+                currentTest = "Drive to AprilTag";
+                if (detectAprilTag()) {
+                    driveToAprilTag(10.0);
+                    currentTest = "AprilTag Complete";
+                } else {
+                    currentTest = "No AprilTag Found";
+                }
+                sleep(100);
+
+                currentTest = "Shooting 8 sec";
+                shootSequence(8.0);
+                currentTest = "Shoot Complete";
+                sleep(100);
+                
                 currentTest = "Complete";
             }
             
@@ -547,6 +599,11 @@ public class RayTest2 extends LinearOpMode {
     private void driveToAprilTag(double timeoutSeconds) {
         ElapsedTime timer = new ElapsedTime();
         
+        // Start shooter motor spinning up while driving to save time
+        shootMotor.setPower(1.0);
+        telemetry.addLine("🎯 Starting shooter spin-up during drive...");
+        telemetry.update();
+        
         timer.reset();
         while (opModeIsActive() && timer.seconds() < timeoutSeconds) {
             updatePose();
@@ -573,10 +630,15 @@ public class RayTest2 extends LinearOpMode {
             
             setDrivePower(fwd, str, yaw);
             
+            // Monitor shooter velocity during drive
+            double shooterVelocity = Math.abs(shootMotor.getVelocity());
+            controlShooterVelocity(shooterVelocity, 1.0);
+            
             telemetry.addData("🏷️ AprilTag", "ID %d", desiredTag.id);
             telemetry.addData("📏 Range", "%.1f\" → %.1f\"", desiredTag.ftcPose.range, DESIRED_DISTANCE);
             telemetry.addData("↔️ Yaw", "%.1f°", desiredTag.ftcPose.yaw);
             telemetry.addData("🧭 Bearing", "%.1f°", desiredTag.ftcPose.bearing);
+            telemetry.addData("🎯 Shooter", "%.0f / %.0f ticks/sec", shooterVelocity, SHOOTER_VELOCITY);
             telemetry.update();
         }
         
@@ -587,53 +649,58 @@ public class RayTest2 extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         
         // Shooting configuration
-        final double INDEXER_ACTIVE_TIME = 1.0;  // Each indexer active for 0.5 seconds
-        final double DELAY_BETWEEN_SHOTS = 1.0;  // 0.3 second delay between shots
-        final int LOADBALLS_BEFORE_SHOT_DURATION = 1000;  // Duration to load balls before 3rd and 4th shots (ms)
+        final double INDEXER_ACTIVE_TIME = 1.0;  // Each indexer active for 1.0 seconds
+        final double DELAY_BETWEEN_SHOTS = 1.0;  // 1.0 second delay between shots
+        final int LOADBALLS_BEFORE_SHOT_DURATION = 1000;  // Duration to load balls before 3rd shot (ms)
     
-        // run loadballs in 0.5 seconds before shooting
-        //loadBalls(0.5);
-        
-        // Start shooter motor
+        // Shooter motor should already be running from driveToAprilTag
+        // But ensure it's running and wait for target velocity if needed
         shootMotor.setPower(1.0);
         
-        // Wait for shooter to reach target velocity
-        telemetry.addLine("🎯 Spinning up shooter...");
-        telemetry.update();
-        
-        timer.reset();
-        while (opModeIsActive() && timer.seconds() < 3.0) {
-            double velocity = Math.abs(shootMotor.getVelocity());
-            
-            // Apply velocity control during spin-up
-            controlShooterVelocity(velocity, 1.0);
-            
-            telemetry.addData("🎯 Shooter", "%.0f / %.0f ticks/sec", velocity, INDEXER_ACTIVATION_VELOCITY);
-            telemetry.addData("Status", velocity >= INDEXER_ACTIVATION_VELOCITY ? "✓ READY" : "⏱️ SPINNING UP");
+        // Check if shooter is already at speed (likely if called after driveToAprilTag)
+        double currentVelocity = Math.abs(shootMotor.getVelocity());
+        if (currentVelocity < INDEXER_ACTIVATION_VELOCITY) {
+            telemetry.addLine("🎯 Spinning up shooter to target velocity...");
             telemetry.update();
             
-            if (velocity >= INDEXER_ACTIVATION_VELOCITY) {
-                break;
+            timer.reset();
+            while (opModeIsActive() && timer.seconds() < 3.0) {
+                double velocity = Math.abs(shootMotor.getVelocity());
+                
+                // Apply velocity control during spin-up
+                controlShooterVelocity(velocity, 1.0);
+                
+                telemetry.addData("🎯 Shooter", "%.0f / %.0f ticks/sec", velocity, INDEXER_ACTIVATION_VELOCITY);
+                telemetry.addData("Status", velocity >= INDEXER_ACTIVATION_VELOCITY ? "✓ READY" : "⏱️ SPINNING UP");
+                telemetry.update();
+                
+                if (velocity >= INDEXER_ACTIVATION_VELOCITY) {
+                    break;
+                }
+                sleep(50);
             }
-            sleep(50);
+        } else {
+            telemetry.addLine("✓ Shooter already at target velocity!");
+            telemetry.update();
+            sleep(300);
         }
         
-        // Shoot 4 times: right, left, right, left
-        String[] sequence = {"RIGHT", "LEFT", "RIGHT", "LEFT"};
+        // Shoot 3 times: right, left, right
+        String[] sequence = {"RIGHT", "LEFT", "RIGHT"};
         
-        for (int shot = 0; shot < 4 && opModeIsActive(); shot++) {
+        for (int shot = 0; shot < 3 && opModeIsActive(); shot++) {
             String currentIndexer = sequence[shot];
             
-            // Before 3rd and 4th shots, run loadballs for specified duration
-            if (shot == 2) {
-                telemetry.addLine(String.format("🔄 Loading balls before shot %d...", shot + 1));
+            // Start intake motor for 2nd and 3rd shots (to load balls while shooting)
+            if (shot == 1 || shot == 2) {
+                telemetry.addLine(String.format("🔄 Starting intake for shot %d...", shot + 1));
                 telemetry.update();
                 intakeMotor.setPower(1.0);
-                sleep(LOADBALLS_BEFORE_SHOT_DURATION);
+                sleep(200);  // Brief delay to ensure intake is running
             }
             
             // Activate the appropriate indexer
-            telemetry.addLine(String.format("🚀 Shot %d/4: %s INDEXER", shot + 1, currentIndexer));
+            telemetry.addLine(String.format("🚀 Shot %d/3: %s INDEXER", shot + 1, currentIndexer));
             telemetry.update();
             
             if (currentIndexer.equals("RIGHT")) {
@@ -652,22 +719,22 @@ public class RayTest2 extends LinearOpMode {
                 
                 telemetry.addData("🎯 Shooter", "%.0f ticks/sec", velocity);
                 telemetry.addData("📤 Active Indexer", currentIndexer);
-                telemetry.addData("🚀 Shot", "%d/4", shot + 1);
+                telemetry.addData("🚀 Shot", "%d/3", shot + 1);
                 telemetry.addData("⏱️ Shot Time", "%.2f / %.2f sec", timer.seconds(), INDEXER_ACTIVE_TIME);
-                if (shot == 2 || shot == 3) {
-                    telemetry.addData("🔄 Intake", "RUNNING");
+                if (shot == 1 || shot == 2) {
+                    telemetry.addData("🔄 Intake", "RUNNING (loading)");
                 }
                 telemetry.update();
                 sleep(50);
             }
             
-            // Stop the indexer and intake
+            // Stop the indexers (but keep intake running for shots 2 and 3)
             leftIndexMotor.setPower(0);
             rightIndexMotor.setPower(0);
 
             
             // Delay between shots (except after the last shot)
-            if (shot < 3) {
+            if (shot < 2) {
                 telemetry.addLine(String.format("⏸️ Delay before shot %d...", shot + 2));
                 telemetry.update();
                 
@@ -680,6 +747,10 @@ public class RayTest2 extends LinearOpMode {
                     
                     telemetry.addData("🎯 Shooter", "%.0f ticks/sec", velocity);
                     telemetry.addData("⏸️ Delay", "%.2f / %.2f sec", timer.seconds(), DELAY_BETWEEN_SHOTS);
+                    // Show intake status during delays
+                    if (shot >= 1) {
+                        telemetry.addData("🔄 Intake", "RUNNING (loading)");
+                    }
                     telemetry.update();
                     sleep(50);
                 }
