@@ -72,7 +72,7 @@ public class DriveTestTeleOp_1027 extends LinearOpMode {
     private boolean prevB=false, prevY=false;
 
     // AprilTag variables and constants
-    final double DESIRED_DISTANCE = 55.0; 
+    final double DESIRED_DISTANCE = 65.0; 
     final double SPEED_GAIN =   0.035 ;   
     final double TURN_GAIN  =   0.017;   
     final double MAX_AUTO_SPEED = 0.55;   
