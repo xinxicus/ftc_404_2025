@@ -53,6 +53,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
     private DcMotor rightIndexMotor;
     
     // ---- Shooter constants ----
+    private static final double MOTOR_WARM_UP_POWER = 0.5;
     private static final double SHOOTER_VELOCITY = 1200;
     private static final double INDEXER_ACTIVATION_VELOCITY = 1175;
     private static final double MAX_REVERSE_VELOCITY = 400;  // Maximum reverse velocity when clearing jams
@@ -374,7 +375,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         
         // Start shooter motor spinning up while driving to save time
-        shootMotor.setPower(1.0);
+        shootMotor.setPower(MOTOR_WARM_UP_POWER);
         telemetry.addLine("🎯 Starting shooter spin-up during drive...");
         telemetry.update();
         

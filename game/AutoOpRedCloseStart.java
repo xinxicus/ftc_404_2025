@@ -39,6 +39,7 @@ public class AutoOpRedCloseStart extends LinearOpMode {
     static final double DISTANCE_THRESHOLD = 2.0;
     
     // ---- Loading zone drive parameters ----
+    private static final double MOTOR_WARM_UP_POWER = 0.5;
     static final double LOADING_ZONE_DRIVE_Y = -77;  // Backward distance
     static final double LOADING_ZONE_DRIVE_X = -3;  // Lateral distance
     
@@ -374,7 +375,7 @@ public class AutoOpRedCloseStart extends LinearOpMode {
         ElapsedTime timer = new ElapsedTime();
         
         // Start shooter motor spinning up while driving to save time
-        shootMotor.setPower(1.0);
+        shootMotor.setPower(MOTOR_WARM_UP_POWER);
         telemetry.addLine("🎯 Starting shooter spin-up during drive...");
         telemetry.update();
         
