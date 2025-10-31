@@ -55,7 +55,7 @@ public class RayRedCloseStart extends LinearOpMode {
     
     // ---- Shooter constants ----
     private static final double SHOOTER_VELOCITY = 1200;
-    private static final double INDEXER_ACTIVATION_VELOCITY = 1175;
+    private static final double INDEXER_ACTIVATION_VELOCITY = 1150;
     private static final double MAX_REVERSE_VELOCITY = 400;  // Maximum reverse velocity when clearing jams
     
     // ---- Pose tracking ----

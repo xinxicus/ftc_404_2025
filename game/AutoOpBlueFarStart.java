@@ -114,7 +114,7 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             // Step 1: Move backward 70 inches
             currentStatus = "Drive Backward 70\"";
             updateStatusDisplay();
-            driveDistance(-70, 5, DRIVE_SPEED, 5.0);
+            driveDistance(-75, 0, DRIVE_SPEED, 5.0);
             currentStatus = "Forward Complete";
             updateStatusDisplay();
             sleep(100);
@@ -162,7 +162,7 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             // Step 6: Reverse mode - clearing jams
             currentStatus = "Reverse Mode - Clearing Jams";
             updateStatusDisplay();
-            reverseMode(5.0);  // Run reverse mode for 5 seconds
+            reverseMode(4.0);  // Run reverse mode for 5 seconds
             currentStatus = "Reverse Complete";
             updateStatusDisplay();
             sleep(100);
@@ -188,9 +188,9 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             sleep(100);
             
             // Step 9: Strafe left 5 inches
-            currentStatus = "Strafe Left 5";
+            currentStatus = "Strafe Left 20";
             updateStatusDisplay();
-            driveDistance(0, -5, DRIVE_SPEED, 5.0);
+            driveDistance(0, -20, DRIVE_SPEED, 5.0);
             currentStatus = "Strafe Complete";
             updateStatusDisplay();
             sleep(100);
