@@ -22,8 +22,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="AutoOp Blue close start 11/1")
-public class AutoOpBlueCloseStart extends LinearOpMode {
+@Autonomous(name="AutoOp Red far start 11/1")
+public class AutoOpRedFarStart extends LinearOpMode {
     // ---- Odometry constants ----
     static final double WHEEL_RADIUS_IN = 1.8898;
     static final double GEAR_RATIO = 1.0;
@@ -39,8 +39,9 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
     static final double DISTANCE_THRESHOLD = 2.0;
     
     // ---- Loading zone drive parameters ----
+    private static final double MOTOR_WARM_UP_POWER = 0.5;
     static final double LOADING_ZONE_DRIVE_Y = -76;  // Backward distance
-    static final double LOADING_ZONE_DRIVE_X = -12;  // Lateral distance
+    static final double LOADING_ZONE_DRIVE_X = -3;  // Lateral distance
     
     // ---- Drive motors ----
     private DcMotorEx fl, fr, bl, br;
@@ -53,7 +54,6 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
     private DcMotor rightIndexMotor;
     
     // ---- Shooter constants ----
-    private static final double MOTOR_WARM_UP_POWER = 0.5;
     private static final double SHOOTER_VELOCITY = 1200;
     private static final double INDEXER_ACTIVATION_VELOCITY = 1175;
     private static final double MAX_REVERSE_VELOCITY = 400;  // Maximum reverse velocity when clearing jams
@@ -72,7 +72,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
     final double BEARING_OFFSET = 0.0;
     final double YAW_OFFSET = 0.0;
     private static final boolean USE_WEBCAM = true;
-    private static final int DESIRED_TAG_ID = 20;
+    private static final int DESIRED_TAG_ID = 24;
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTag;
     private AprilTagDetection desiredTag = null;
@@ -111,10 +111,10 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
         if (opModeIsActive()) {
             // ==================== AUTONOMOUS SEQUENCE ====================
             
-            // Step 1: Move forward 10 inches
-            currentStatus = "Drive Forward 10\"";
+            // Step 1: Move backward 70 inches
+            currentStatus = "Drive backward 70\"";
             updateStatusDisplay();
-            driveDistance(10, 0, DRIVE_SPEED, 5.0);
+            driveDistance(-70, -5, DRIVE_SPEED, 5.0);
             currentStatus = "Forward Complete";
             updateStatusDisplay();
             sleep(100);
@@ -187,15 +187,15 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
             updateStatusDisplay();
             sleep(100);
             
-            // Step 9: Strafe left 5 inches
-            currentStatus = "Strafe Left 5";
+            // Step 9: Strafe right 5 inches
+            currentStatus = "Strafe right 5";
             updateStatusDisplay();
-            driveDistance(0, -5, DRIVE_SPEED, 5.0);
+            driveDistance(0, 5, DRIVE_SPEED, 5.0);
             currentStatus = "Strafe Complete";
             updateStatusDisplay();
             sleep(100);
 
-            
+
             // Sequence complete
             currentStatus = "✓ SEQUENCE COMPLETE";
             updateStatusDisplay();
@@ -685,7 +685,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
     private boolean scanForAprilTag(double timeoutSeconds) {
         ElapsedTime timer = new ElapsedTime();
         final double SCAN_SPEED = 0.15;  // Slow turning speed for scanning
-        final double SCAN_ANGLE = 90.0;  // Scan 45 degrees in each direction
+        final double SCAN_ANGLE = 90.0;  // Scan 90 degrees to the right
         
         // Record starting heading
         double startHeadingDegrees = Math.toDegrees(heading);
@@ -693,50 +693,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
         telemetry.addLine("🔍 Scanning for AprilTag...");
         telemetry.update();
         
-        // Phase 1: Turn left while scanning
-        double targetLeft = startHeadingDegrees - SCAN_ANGLE;
-        telemetry.addLine("🔍 Scanning LEFT...");
-        telemetry.update();
-        
-        timer.reset();
-        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 2) {
-            updatePose();
-            
-            // Check for AprilTag
-            if (detectAprilTag()) {
-                stopDrive();
-                telemetry.addLine("✓ AprilTag FOUND during left scan!");
-                telemetry.update();
-                sleep(300);
-                return true;
-            }
-            
-            // Calculate heading error
-            double currentHeadingDegrees = Math.toDegrees(heading);
-            double headingError = wrap(Math.toRadians(targetLeft - currentHeadingDegrees));
-            
-            // Check if we've reached the left limit
-            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
-                break;
-            }
-            
-            // Turn left slowly
-            setDrivePower(0, 0, -SCAN_SPEED);
-            
-            telemetry.addData("Status", currentStatus);
-            telemetry.addData("🔍 Scanning", "LEFT");
-            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
-            telemetry.addData("🎯 Target", "%.1f°", targetLeft);
-            telemetry.addData("AprilTag", "Not found yet...");
-            telemetry.update();
-            
-            sleep(50);
-        }
-        
-        stopDrive();
-        sleep(200);
-        
-        // Phase 2: Turn right while scanning (sweep across to right side)
+        // Phase 1: Turn right while scanning
         double targetRight = startHeadingDegrees + SCAN_ANGLE;
         telemetry.addLine("🔍 Scanning RIGHT...");
         telemetry.update();
@@ -777,11 +734,52 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
         }
         
         stopDrive();
+        sleep(200);
         
-        // Return to original heading if tag not found
-        telemetry.addLine("❌ No AprilTag found - returning to start...");
+        // Phase 2: Scan back to original heading
+        telemetry.addLine("🔍 Scanning back to start...");
         telemetry.update();
-        turnToHeading(startHeadingDegrees, TURN_SPEED, 3.0);
+        
+        timer.reset();
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 2) {
+            updatePose();
+            
+            // Check for AprilTag
+            if (detectAprilTag()) {
+                stopDrive();
+                telemetry.addLine("✓ AprilTag FOUND while returning!");
+                telemetry.update();
+                sleep(300);
+                return true;
+            }
+            
+            // Calculate heading error
+            double currentHeadingDegrees = Math.toDegrees(heading);
+            double headingError = wrap(Math.toRadians(startHeadingDegrees - currentHeadingDegrees));
+            
+            // Check if we've reached the original heading
+            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
+                break;
+            }
+            
+            // Turn left slowly to return
+            setDrivePower(0, 0, -SCAN_SPEED);
+            
+            telemetry.addData("Status", currentStatus);
+            telemetry.addData("🔍 Scanning", "BACK TO START");
+            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
+            telemetry.addData("🎯 Target", "%.1f°", startHeadingDegrees);
+            telemetry.addData("AprilTag", "Not found yet...");
+            telemetry.update();
+            
+            sleep(50);
+        }
+        
+        stopDrive();
+        
+        // AprilTag not found
+        telemetry.addLine("❌ No AprilTag found during scan");
+        telemetry.update();
         
         return false;
     }

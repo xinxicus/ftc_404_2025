@@ -22,8 +22,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="AutoOp Blue close start 11/1")
-public class AutoOpBlueCloseStart extends LinearOpMode {
+@Autonomous(name="AutoOp Blue far start 11/1")
+public class AutoOpBlueFarStart extends LinearOpMode {
     // ---- Odometry constants ----
     static final double WHEEL_RADIUS_IN = 1.8898;
     static final double GEAR_RATIO = 1.0;
@@ -111,10 +111,10 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
         if (opModeIsActive()) {
             // ==================== AUTONOMOUS SEQUENCE ====================
             
-            // Step 1: Move forward 10 inches
-            currentStatus = "Drive Forward 10\"";
+            // Step 1: Move backward 70 inches
+            currentStatus = "Drive Backward 70\"";
             updateStatusDisplay();
-            driveDistance(10, 0, DRIVE_SPEED, 5.0);
+            driveDistance(-70, 5, DRIVE_SPEED, 5.0);
             currentStatus = "Forward Complete";
             updateStatusDisplay();
             sleep(100);

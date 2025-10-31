@@ -187,6 +187,15 @@ public class AutoOpRedCloseStart extends LinearOpMode {
             updateStatusDisplay();
             sleep(100);
             
+            // Step 9: Strafe right 5 inches
+            currentStatus = "Strafe right 5";
+            updateStatusDisplay();
+            driveDistance(0, 5, DRIVE_SPEED, 5.0);
+            currentStatus = "Strafe Complete";
+            updateStatusDisplay();
+            sleep(100);
+
+
             // Sequence complete
             currentStatus = "✓ SEQUENCE COMPLETE";
             updateStatusDisplay();
