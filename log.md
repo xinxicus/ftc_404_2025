@@ -9,6 +9,10 @@ https://viewer.autodesk.com/id/dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6YTM2MHZpZXdlc
 
 
 # loading zone
-x=-72
-y=-18.3
+## blue
+x=-76
+y=-12
 
+## red
+x=-77
+y=-3

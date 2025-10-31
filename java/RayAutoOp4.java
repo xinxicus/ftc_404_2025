@@ -22,8 +22,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="Ray Auto Op 3")
-public class RayAutoOp3 extends LinearOpMode {
+@Autonomous(name="Ray Auto Op 4")
+public class RayAutoOp4 extends LinearOpMode {
     // ---- Odometry constants ----
     static final double WHEEL_RADIUS_IN = 1.8898;
     static final double GEAR_RATIO = 1.0;
