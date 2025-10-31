@@ -676,7 +676,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
     private boolean scanForAprilTag(double timeoutSeconds) {
         ElapsedTime timer = new ElapsedTime();
         final double SCAN_SPEED = 0.15;  // Slow turning speed for scanning
-        final double SCAN_ANGLE = 45.0;  // Scan 45 degrees in each direction
+        final double SCAN_ANGLE = 90.0;  // Scan 45 degrees in each direction
         
         // Record starting heading
         double startHeadingDegrees = Math.toDegrees(heading);
