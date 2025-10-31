@@ -22,8 +22,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="AutoOp Red close start 11/1")
-public class AutoOpRedCloseStart extends LinearOpMode {
+@Autonomous(name="Ray Red close start 11/1")
+public class RayRedCloseStart extends LinearOpMode {
     // ---- Odometry constants ----
     static final double WHEEL_RADIUS_IN = 1.8898;
     static final double GEAR_RATIO = 1.0;
