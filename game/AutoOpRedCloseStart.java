@@ -122,7 +122,7 @@ public class AutoOpRedCloseStart extends LinearOpMode {
             // Step 2: Scan for AprilTag and drive to it
             currentStatus = "Scanning for AprilTag";
             updateStatusDisplay();
-            if (scanForAprilTag(10.0)) {
+            if (scanForAprilTag(45, false, 5)) {
                 currentStatus = "Tag Found - Driving";
                 updateStatusDisplay();
                 driveToAprilTag(10.0);
@@ -174,8 +174,16 @@ public class AutoOpRedCloseStart extends LinearOpMode {
                 driveToAprilTag(10.0);
                 currentStatus = "AprilTag Complete";
             } else {
-                currentStatus = "No AprilTag Found";
+                currentStatus = "Scanning for AprilTag";
+                updateStatusDisplay();
+                if (scanForAprilTag(20, false, 5)) {
+                    driveToAprilTag(10.0);
+                    currentStatus = "AprilTag Complete";
+                } else {
+                    currentStatus = "No AprilTag Found";
+                }
             }
+
             updateStatusDisplay();
             sleep(100);
 
@@ -675,58 +683,67 @@ public class AutoOpRedCloseStart extends LinearOpMode {
         return false;
     }
     
-    /**
+   /**
      * Scan for AprilTag by slowly turning left and right
      * Continuously checks for AprilTag while rotating
      * 
+     * @param degree The angle in degrees to scan in each direction
+     * @param leftFirst If true, scan left first; if false, scan right first
      * @param timeoutSeconds Maximum time to attempt the scan
      * @return true if AprilTag was found, false otherwise
      */
-    private boolean scanForAprilTag(double timeoutSeconds) {
+    private boolean scanForAprilTag(double degree, boolean leftFirst, double timeoutSeconds) {
         ElapsedTime timer = new ElapsedTime();
-        final double SCAN_SPEED = 0.15;  // Slow turning speed for scanning
-        final double SCAN_ANGLE = 90.0;  // Scan 90 degrees to the right
+        final double SCAN_SPEED = 0.2;  // Slow turning speed for scanning
         
         // Record starting heading
         double startHeadingDegrees = Math.toDegrees(heading);
         
         telemetry.addLine("🔍 Scanning for AprilTag...");
+        telemetry.addData("Scan Degree", "%.1f°", degree);
+        telemetry.addData("Direction", leftFirst ? "LEFT first" : "RIGHT first");
         telemetry.update();
         
-        // Phase 1: Turn right while scanning
-        double targetRight = startHeadingDegrees + SCAN_ANGLE;
-        telemetry.addLine("🔍 Scanning RIGHT...");
+        // Define first and second directions based on leftFirst parameter
+        String firstDirection = leftFirst ? "LEFT" : "RIGHT";
+        String secondDirection = leftFirst ? "RIGHT" : "LEFT";
+        double firstTurnSpeed = leftFirst ? -SCAN_SPEED : SCAN_SPEED;
+        double secondTurnSpeed = leftFirst ? SCAN_SPEED : -SCAN_SPEED;
+        
+        // Phase 1: Turn in first direction
+        double firstTarget = leftFirst ? (startHeadingDegrees - degree) : (startHeadingDegrees + degree);
+        telemetry.addLine("🔍 Scanning " + firstDirection + "...");
         telemetry.update();
         
         timer.reset();
-        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 2) {
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
             updatePose();
             
             // Check for AprilTag
             if (detectAprilTag()) {
                 stopDrive();
-                telemetry.addLine("✓ AprilTag FOUND during right scan!");
+                telemetry.addLine("✓ AprilTag FOUND during " + firstDirection + " scan!");
                 telemetry.update();
-                sleep(300);
+                sleep(100);
                 return true;
             }
             
             // Calculate heading error
             double currentHeadingDegrees = Math.toDegrees(heading);
-            double headingError = wrap(Math.toRadians(targetRight - currentHeadingDegrees));
+            double headingError = wrap(Math.toRadians(firstTarget - currentHeadingDegrees));
             
-            // Check if we've reached the right limit
+            // Check if we've reached the first direction limit
             if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
                 break;
             }
             
-            // Turn right slowly
-            setDrivePower(0, 0, SCAN_SPEED);
+            // Turn in first direction
+            setDrivePower(0, 0, firstTurnSpeed);
             
             telemetry.addData("Status", currentStatus);
-            telemetry.addData("🔍 Scanning", "RIGHT");
+            telemetry.addData("🔍 Scanning", firstDirection);
             telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
-            telemetry.addData("🎯 Target", "%.1f°", targetRight);
+            telemetry.addData("🎯 Target", "%.1f°", firstTarget);
             telemetry.addData("AprilTag", "Not found yet...");
             telemetry.update();
             
@@ -734,22 +751,22 @@ public class AutoOpRedCloseStart extends LinearOpMode {
         }
         
         stopDrive();
-        sleep(200);
+        sleep(100);
         
-        // Phase 2: Scan back to original heading
-        telemetry.addLine("🔍 Scanning back to start...");
+        // Phase 2: Turn back to start
+        telemetry.addLine("🔍 Returning to center...");
         telemetry.update();
         
         timer.reset();
-        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 2) {
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
             updatePose();
             
             // Check for AprilTag
             if (detectAprilTag()) {
                 stopDrive();
-                telemetry.addLine("✓ AprilTag FOUND while returning!");
+                telemetry.addLine("✓ AprilTag FOUND while returning to center!");
                 telemetry.update();
-                sleep(300);
+                sleep(100);
                 return true;
             }
             
@@ -757,16 +774,16 @@ public class AutoOpRedCloseStart extends LinearOpMode {
             double currentHeadingDegrees = Math.toDegrees(heading);
             double headingError = wrap(Math.toRadians(startHeadingDegrees - currentHeadingDegrees));
             
-            // Check if we've reached the original heading
+            // Check if we've reached the start
             if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
                 break;
             }
             
-            // Turn left slowly to return
-            setDrivePower(0, 0, -SCAN_SPEED);
+            // Turn back to start
+            setDrivePower(0, 0, -firstTurnSpeed);
             
             telemetry.addData("Status", currentStatus);
-            telemetry.addData("🔍 Scanning", "BACK TO START");
+            telemetry.addData("🔍 Scanning", "Returning to center");
             telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
             telemetry.addData("🎯 Target", "%.1f°", startHeadingDegrees);
             telemetry.addData("AprilTag", "Not found yet...");
@@ -776,11 +793,91 @@ public class AutoOpRedCloseStart extends LinearOpMode {
         }
         
         stopDrive();
+        sleep(100);
         
-        // AprilTag not found
-        telemetry.addLine("❌ No AprilTag found during scan");
+        // Phase 3: Turn in second direction (opposite of first)
+        double secondTarget = leftFirst ? (startHeadingDegrees + degree) : (startHeadingDegrees - degree);
+        telemetry.addLine("🔍 Scanning " + secondDirection + "...");
         telemetry.update();
         
+        timer.reset();
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
+            updatePose();
+            
+            // Check for AprilTag
+            if (detectAprilTag()) {
+                stopDrive();
+                telemetry.addLine("✓ AprilTag FOUND during " + secondDirection + " scan!");
+                telemetry.update();
+                sleep(100);
+                return true;
+            }
+            
+            // Calculate heading error
+            double currentHeadingDegrees = Math.toDegrees(heading);
+            double headingError = wrap(Math.toRadians(secondTarget - currentHeadingDegrees));
+            
+            // Check if we've reached the second direction limit
+            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
+                break;
+            }
+            
+            // Turn in second direction
+            setDrivePower(0, 0, secondTurnSpeed);
+            
+            telemetry.addData("Status", currentStatus);
+            telemetry.addData("🔍 Scanning", secondDirection);
+            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
+            telemetry.addData("🎯 Target", "%.1f°", secondTarget);
+            telemetry.addData("AprilTag", "Not found yet...");
+            telemetry.update();
+            
+            sleep(50);
+        }
+        
+        stopDrive();
+        sleep(100);
+        
+        // Phase 4: Return to original heading
+        telemetry.addLine("❌ No AprilTag found - returning to start...");
+        telemetry.update();
+        
+        timer.reset();
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
+            updatePose();
+            
+            // Check for AprilTag even while returning
+            if (detectAprilTag()) {
+                stopDrive();
+                telemetry.addLine("✓ AprilTag FOUND while returning to start!");
+                telemetry.update();
+                sleep(100);
+                return true;
+            }
+            
+            // Calculate heading error
+            double currentHeadingDegrees = Math.toDegrees(heading);
+            double headingError = wrap(Math.toRadians(startHeadingDegrees - currentHeadingDegrees));
+            
+            // Check if we've reached the start
+            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
+                break;
+            }
+            
+            // Turn back to start
+            setDrivePower(0, 0, -secondTurnSpeed);
+            
+            telemetry.addData("Status", currentStatus);
+            telemetry.addData("🔍 Scanning", "Final return to start");
+            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
+            telemetry.addData("🎯 Target", "%.1f°", startHeadingDegrees);
+            telemetry.addData("AprilTag", "Not found yet...");
+            telemetry.update();
+            
+            sleep(50);
+        }
+        
+        stopDrive();
         return false;
     }
 
