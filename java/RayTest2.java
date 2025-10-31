@@ -169,14 +169,26 @@ public class RayTest2 extends LinearOpMode {
             
             if (curDpadLeft && !prevDpadLeft && !autoModeActive) {
                 autoModeActive = true;
-                currentTest = "Strafe Left 12\"";
-                driveDistance(0, -12, DRIVE_SPEED, 5.0);
-                autoModeActive = false;
+                currentTest = "Scanning for AprilTag";
+                if (scanForAprilTag(90.0, true, 10.0)) {
+                    currentTest = "Tag Found - Driving";
+                    currentTest = "AprilTag Complete";
+                } else {
+                    currentTest = "No AprilTag Found";
+                }
                 currentTest = "Complete";
             }
             
             if (curDpadRight && !prevDpadRight && !autoModeActive) {
                 autoModeActive = true;
+                currentTest = "Scanning for AprilTag";
+                if (scanForAprilTag(90.0, false, 10.0)) {
+                    currentTest = "Tag Found - Driving";
+                    currentTest = "AprilTag Complete";
+                } else {
+                    currentTest = "No AprilTag Found";
+                }
+                /*
                 currentTest = "Scanning for AprilTag";
                 if (scanForAprilTag(10.0)) {
                     currentTest = "Tag Found - Driving";
@@ -185,6 +197,7 @@ public class RayTest2 extends LinearOpMode {
                 } else {
                     currentTest = "No AprilTag Found";
                 }
+                     */
                 autoModeActive = false;
             }
             
@@ -202,6 +215,7 @@ public class RayTest2 extends LinearOpMode {
             
             if (curB && !prevB && !autoModeActive) {
                 autoModeActive = true;
+                /*
                 
                 // Step 1: Move forward 10 inches
                 currentTest = "Drive Forward 10\"";
@@ -320,6 +334,7 @@ public class RayTest2 extends LinearOpMode {
                 sleep(100);
                 
                 currentTest = "Complete";
+                 */
             }
             
             if (curY && !prevY && !autoModeActive) {
@@ -893,7 +908,7 @@ public class RayTest2 extends LinearOpMode {
      * 
      * @param timeoutSeconds Maximum time to attempt the scan
      * @return true if AprilTag was found, false otherwise
-     */
+     
     private boolean scanForAprilTag(double timeoutSeconds) {
         ElapsedTime timer = new ElapsedTime();
         final double SCAN_SPEED = 0.15;  // Slow turning speed for scanning
@@ -996,6 +1011,7 @@ public class RayTest2 extends LinearOpMode {
         return false;
     }
 
+    */
     /**
      * Load balls by running intake motor
      * Uses similar logic to reverseMode - checks if trigger button is pressed
@@ -1099,5 +1115,202 @@ public class RayTest2 extends LinearOpMode {
     }
 
 
-}
 
+  /**
+     * Scan for AprilTag by slowly turning left and right
+     * Continuously checks for AprilTag while rotating
+     * 
+     * @param degree The angle in degrees to scan in each direction
+     * @param leftFirst If true, scan left first; if false, scan right first
+     * @param timeoutSeconds Maximum time to attempt the scan
+     * @return true if AprilTag was found, false otherwise
+     */
+    private boolean scanForAprilTag(double degree, boolean leftFirst, double timeoutSeconds) {
+        ElapsedTime timer = new ElapsedTime();
+        final double SCAN_SPEED = 0.2;  // Slow turning speed for scanning
+        
+        // Record starting heading
+        double startHeadingDegrees = Math.toDegrees(heading);
+        
+        telemetry.addLine("🔍 Scanning for AprilTag...");
+        telemetry.addData("Scan Degree", "%.1f°", degree);
+        telemetry.addData("Direction", leftFirst ? "LEFT first" : "RIGHT first");
+        telemetry.update();
+        
+        // Define first and second directions based on leftFirst parameter
+        String firstDirection = leftFirst ? "LEFT" : "RIGHT";
+        String secondDirection = leftFirst ? "RIGHT" : "LEFT";
+        double firstTurnSpeed = leftFirst ? -SCAN_SPEED : SCAN_SPEED;
+        double secondTurnSpeed = leftFirst ? SCAN_SPEED : -SCAN_SPEED;
+        
+        // Phase 1: Turn in first direction
+        double firstTarget = leftFirst ? (startHeadingDegrees - degree) : (startHeadingDegrees + degree);
+        telemetry.addLine("🔍 Scanning " + firstDirection + "...");
+        telemetry.update();
+        
+        timer.reset();
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
+            updatePose();
+            
+            // Check for AprilTag
+            if (detectAprilTag()) {
+                stopDrive();
+                telemetry.addLine("✓ AprilTag FOUND during " + firstDirection + " scan!");
+                telemetry.update();
+                sleep(300);
+                return true;
+            }
+            
+            // Calculate heading error
+            double currentHeadingDegrees = Math.toDegrees(heading);
+            double headingError = wrap(Math.toRadians(firstTarget - currentHeadingDegrees));
+            
+            // Check if we've reached the first direction limit
+            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
+                break;
+            }
+            
+            // Turn in first direction
+            setDrivePower(0, 0, firstTurnSpeed);
+            
+            //telemetry.addData("Status", currentStatus);
+            telemetry.addData("🔍 Scanning", firstDirection);
+            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
+            telemetry.addData("🎯 Target", "%.1f°", firstTarget);
+            telemetry.addData("AprilTag", "Not found yet...");
+            telemetry.update();
+            
+            sleep(50);
+        }
+        
+        stopDrive();
+        sleep(200);
+        
+        // Phase 2: Turn back to start
+        telemetry.addLine("🔍 Returning to center...");
+        telemetry.update();
+        
+        timer.reset();
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
+            updatePose();
+            
+            // Check for AprilTag
+            if (detectAprilTag()) {
+                stopDrive();
+                telemetry.addLine("✓ AprilTag FOUND while returning to center!");
+                telemetry.update();
+                sleep(300);
+                return true;
+            }
+            
+            // Calculate heading error
+            double currentHeadingDegrees = Math.toDegrees(heading);
+            double headingError = wrap(Math.toRadians(startHeadingDegrees - currentHeadingDegrees));
+            
+            // Check if we've reached the start
+            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
+                break;
+            }
+            
+            // Turn back to start
+            setDrivePower(0, 0, -firstTurnSpeed);
+            
+            //telemetry.addData("Status", currentStatus);
+            telemetry.addData("🔍 Scanning", "Returning to center");
+            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
+            telemetry.addData("🎯 Target", "%.1f°", startHeadingDegrees);
+            telemetry.addData("AprilTag", "Not found yet...");
+            telemetry.update();
+            
+            sleep(50);
+        }
+        
+        stopDrive();
+        sleep(200);
+        
+        // Phase 3: Turn in second direction (opposite of first)
+        double secondTarget = leftFirst ? (startHeadingDegrees + degree) : (startHeadingDegrees - degree);
+        telemetry.addLine("🔍 Scanning " + secondDirection + "...");
+        telemetry.update();
+        
+        timer.reset();
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
+            updatePose();
+            
+            // Check for AprilTag
+            if (detectAprilTag()) {
+                stopDrive();
+                telemetry.addLine("✓ AprilTag FOUND during " + secondDirection + " scan!");
+                telemetry.update();
+                sleep(300);
+                return true;
+            }
+            
+            // Calculate heading error
+            double currentHeadingDegrees = Math.toDegrees(heading);
+            double headingError = wrap(Math.toRadians(secondTarget - currentHeadingDegrees));
+            
+            // Check if we've reached the second direction limit
+            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
+                break;
+            }
+            
+            // Turn in second direction
+            setDrivePower(0, 0, secondTurnSpeed);
+            
+            //telemetry.addData("Status", currentStatus);
+            telemetry.addData("🔍 Scanning", secondDirection);
+            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
+            telemetry.addData("🎯 Target", "%.1f°", secondTarget);
+            telemetry.addData("AprilTag", "Not found yet...");
+            telemetry.update();
+            
+            sleep(50);
+        }
+        
+        stopDrive();
+        sleep(200);
+        
+        // Phase 4: Return to original heading
+        telemetry.addLine("❌ No AprilTag found - returning to start...");
+        telemetry.update();
+        
+        timer.reset();
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds / 4) {
+            updatePose();
+            
+            // Check for AprilTag even while returning
+            if (detectAprilTag()) {
+                stopDrive();
+                telemetry.addLine("✓ AprilTag FOUND while returning to start!");
+                telemetry.update();
+                sleep(300);
+                return true;
+            }
+            
+            // Calculate heading error
+            double currentHeadingDegrees = Math.toDegrees(heading);
+            double headingError = wrap(Math.toRadians(startHeadingDegrees - currentHeadingDegrees));
+            
+            // Check if we've reached the start
+            if (Math.abs(Math.toDegrees(headingError)) < 2.0) {
+                break;
+            }
+            
+            // Turn back to start
+            setDrivePower(0, 0, -secondTurnSpeed);
+            
+            //telemetry.addData("Status", currentStatus);
+            telemetry.addData("🔍 Scanning", "Final return to start");
+            telemetry.addData("🧭 Current", "%.1f°", currentHeadingDegrees);
+            telemetry.addData("🎯 Target", "%.1f°", startHeadingDegrees);
+            telemetry.addData("AprilTag", "Not found yet...");
+            telemetry.update();
+            
+            sleep(50);
+        }
+        
+        stopDrive();
+        return false;
+    }
+}
