@@ -23,8 +23,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@TeleOp(name="TeleOp For Game 11/1")
-public class TeleOpForGame extends LinearOpMode {
+@TeleOp(name="TeleOp Blue 11/1")
+public class TeleOpBlue extends LinearOpMode {
     // ---- fill with your real values later (for pose readout, optional) ----
     static final double WHEEL_RADIUS_IN = 1.8898; // 48mm
     static final double GEAR_RATIO = 1.0;
