@@ -123,7 +123,7 @@ public class AutoOpRedFarStart extends LinearOpMode {
             // Step 1.5: Quick reverse mode to prepare
             currentStatus = "Quick Reverse Mode";
             updateStatusDisplay();
-            reverseMode(0.2);  // Run reverse mode for 200ms
+            reverseMode(0.4);  // Run reverse mode for 200ms
             currentStatus = "Quick Reverse Complete";
             updateStatusDisplay();
             sleep(100);
