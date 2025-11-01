@@ -118,6 +118,14 @@ public class AutoOpRedCloseStart extends LinearOpMode {
             currentStatus = "Forward Complete";
             updateStatusDisplay();
             sleep(100);
+
+            // Step 1.5: Quick reverse mode to prepare
+            currentStatus = "Quick Reverse Mode";
+            updateStatusDisplay();
+            reverseMode(0.2);  // Run reverse mode for 200ms
+            currentStatus = "Quick Reverse Complete";
+            updateStatusDisplay();
+            sleep(100);
             
             // Step 2: Scan for AprilTag and drive to it
             currentStatus = "Scanning for AprilTag";
@@ -150,6 +158,9 @@ public class AutoOpRedCloseStart extends LinearOpMode {
             currentStatus = "Pose Reset";
             updateStatusDisplay();
             sleep(1000);
+
+            // Flag to track if AprilTag was successfully reached
+            boolean needsAprilTagRescan = true;
 
             // Step 5: Drive backward to loading zone
             currentStatus = "Drive Backward to loading zone";
@@ -404,7 +415,36 @@ public class AutoOpRedCloseStart extends LinearOpMode {
             
             if (!targetFound) {
                 telemetry.addLine("⚠️ Target lost!");
+                stopDrive();
+                
+                // Try up to 3 times to rescan for the AprilTag
+                boolean foundAgain = false;
+                for (int attempt = 1; attempt <= 2 && opModeIsActive(); attempt++) {
+                    telemetry.addLine(String.format("🔍 Rescan attempt %d/3...", attempt));
+                    telemetry.update();
+                    
+                    if (scanForAprilTag(15, false, 5)) {
+                        telemetry.addLine(String.format("✓ Target found again on attempt %d!", attempt));
+                        telemetry.update();
+                        foundAgain = true;
+                        sleep(200);
                 break;
+                    } else {
+                        telemetry.addLine(String.format("✗ Attempt %d failed", attempt));
+                        telemetry.update();
+                        sleep(100);
+                    }
+                }
+                
+                if (!foundAgain) {
+                    telemetry.addLine("❌ Target lost permanently after 3 attempts!");
+                    telemetry.update();
+                    sleep(500);
+                    break;
+                }
+                
+                // Target found again, continue to next iteration
+                continue;
             }
             
             double rangeError = desiredTag.ftcPose.range - DESIRED_DISTANCE;
@@ -476,7 +516,6 @@ public class AutoOpRedCloseStart extends LinearOpMode {
         } else {
             telemetry.addLine("✓ Shooter already at target velocity!");
             telemetry.update();
-            sleep(300);
         }
         
         // Shoot 3 times: right, left, right
@@ -561,7 +600,6 @@ public class AutoOpRedCloseStart extends LinearOpMode {
         
         telemetry.addLine("✓ Shooting sequence complete!");
         telemetry.update();
-        sleep(500);
     }
     
     /**
