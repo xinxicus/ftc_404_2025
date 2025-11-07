@@ -98,10 +98,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
         telemetry.addLine("  2. Scan & Drive to AprilTag");
         telemetry.addLine("  3. Shoot (8 sec)");
         telemetry.addLine("  4. Reset Pose");
-        telemetry.addLine("  5. Drive to Loading Zone");
-        telemetry.addLine("  6. Reverse Mode (Clear Jams)");
-        telemetry.addLine("  7. Drive to AprilTag");
-        telemetry.addLine("  8. Shoot (8 sec)");
+        telemetry.addLine("  5. Strafe Left 40\"");
         telemetry.addLine();
         telemetry.addLine("✓ Ready - Press ▶ to start");
         telemetry.update();
@@ -159,63 +156,7 @@ public class AutoOpBlueCloseStart extends LinearOpMode {
             updateStatusDisplay();
             sleep(1000);
 
-
-            /* 
-            // Flag to track if AprilTag was successfully reached
-            boolean needsAprilTagRescan = true;
-
-            // Step 5: Drive backward to loading zone
-            currentStatus = "Drive Backward to loading zone";
-            updateStatusDisplay();
-            driveDistance(LOADING_ZONE_DRIVE_Y, LOADING_ZONE_DRIVE_X, DRIVE_SPEED, 5.0);
-            currentStatus = "Drive back Complete";
-            updateStatusDisplay();
-            sleep(100);
-            
-            // Step 6: Reverse mode - clearing jams
-            currentStatus = "Reverse Mode - Clearing Jams";
-            updateStatusDisplay();
-            reverseMode(4.0);  // Run reverse mode for 5 seconds
-            currentStatus = "Reverse Complete";
-            updateStatusDisplay();
-            sleep(100);
-
-            // Step 1: Move forward 10 inches
-            currentStatus = "Drive Forward 10\"";
-            updateStatusDisplay();
-            driveDistance(15, 0, DRIVE_SPEED, 5.0);
-            currentStatus = "Forward Complete";
-            updateStatusDisplay();
-            sleep(100);
-            
-            // Step 7: Drive to AprilTag
-            currentStatus = "Drive to AprilTag";
-            updateStatusDisplay();
-            if (detectAprilTag()) {
-                driveToAprilTag(10.0);
-                currentStatus = "AprilTag Complete";
-            } else {
-                currentStatus = "Scanning for AprilTag";
-                updateStatusDisplay();
-                if (scanForAprilTag(20, true, 5)) {
-                    driveToAprilTag(10.0);
-                    currentStatus = "AprilTag Complete";
-                } else {
-                    currentStatus = "No AprilTag Found";
-                }
-            }
-            updateStatusDisplay();
-            sleep(100);
-
-            // Step 8: Shoot for 8 seconds
-            currentStatus = "Shooting 8 sec";
-            updateStatusDisplay();
-            shootSequence(8.0);
-            currentStatus = "Shoot Complete";
-            updateStatusDisplay();
-            sleep(100);
-            */
-            // Step 9: Strafe left 5 inches
+            // Step 5: Strafe left 40 inches
             currentStatus = "Strafe Left 20";
             updateStatusDisplay();
             driveDistance(0, -40, DRIVE_SPEED, 5.0);
