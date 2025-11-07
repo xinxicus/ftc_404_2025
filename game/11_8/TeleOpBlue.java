@@ -169,10 +169,7 @@ public class TeleOpBlue extends LinearOpMode {
             // Check input states once at the start of the loop for consistency
             boolean reverseMode = gamepad1.left_trigger > 0.5 || gamepad2.left_trigger > 0.5;
             boolean intakePressed = gamepad1.x || gamepad2.x;
-            
-            // AprilTag detection
-            boolean targetFound = detectAprilTag();
-            displayAprilTagStatus(targetFound);
+
             // --- (optional) pose update ---
             YawPitchRollAngles ypr = imu.getRobotYawPitchRollAngles();
             double imuYaw = ypr.getYaw(AngleUnit.RADIANS);
@@ -198,14 +195,26 @@ public class TeleOpBlue extends LinearOpMode {
             // --- driving: check for AprilTag auto-drive or manual control ---
             double fwd, str, yaw;
             
-            // Try AprilTag auto-drive first (A button on either controller)
-            double[] autoDriveCommands = getAutoDriveCommands(targetFound);
-            if (autoDriveCommands != null) {
-                // AprilTag auto-drive mode is active
-                fwd = autoDriveCommands[0];
-                str = autoDriveCommands[1];
-                yaw = autoDriveCommands[2];
-            } else {
+            // Check if A button is pressed for AprilTag auto-drive
+            boolean aPressed = gamepad1.a || gamepad2.a;
+            boolean useAutoDrive = false;
+            
+            if (aPressed) {
+                // AprilTag auto-drive mode - detect target
+                boolean targetFound = detectAprilTag();
+                displayAprilTagStatus(targetFound);
+                
+                double[] autoDriveCommands = getAutoDriveCommands(targetFound);
+                if (autoDriveCommands != null) {
+                    // AprilTag detected and auto-drive active
+                    fwd = autoDriveCommands[0];
+                    str = autoDriveCommands[1];
+                    yaw = autoDriveCommands[2];
+                    useAutoDrive = true;
+                }
+            }
+            
+            if (!useAutoDrive) {
                 // Manual control mode - combine inputs from both controllers
                 double y1 = -gamepad1.left_stick_y;
                 double x1 = gamepad1.left_stick_x;
@@ -515,12 +524,10 @@ public class TeleOpBlue extends LinearOpMode {
         
         if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
             telemetry.addData("Camera", "Waiting");
-            telemetry.update();
             while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
                 sleep(20);
             }
             telemetry.addData("Camera", "Ready");
-            telemetry.update();
         }
         
         if (!isStopRequested())
@@ -536,7 +543,6 @@ public class TeleOpBlue extends LinearOpMode {
             gainControl.setGain(gain);
             sleep(20);
             telemetry.addData("Camera", "Ready");
-            telemetry.update();
         }
     }
     
