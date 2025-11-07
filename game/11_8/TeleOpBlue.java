@@ -193,7 +193,7 @@ public class TeleOpBlue extends LinearOpMode {
             heading = wrap(heading + dTheta);
 
             // --- driving: check for AprilTag auto-drive or manual control ---
-            double fwd, str, yaw;
+            double fwd = 0, str = 0, yaw = 0;
             
             // Check if A button is pressed for AprilTag auto-drive
             boolean aPressed = gamepad1.a || gamepad2.a;
