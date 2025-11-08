@@ -605,11 +605,16 @@ public class TeleOpBlue extends LinearOpMode {
                 return true;
             }
             // Cache didn't work - return false immediately (press UP to reset cache and scan all levels)
-            return false;
+            //return false;
         }
         
         // No cache - scan through all exposure levels from bright (index 0) to dim (index 7)
         for (int i = 0; i < EXPOSURE_LEVELS_MS.length; i++) {
+            // Skip the cached index if we already tried it
+            if (cachedExposureIndex != null && i == cachedExposureIndex) {
+                continue;
+            }
+            
             int exposureMS = EXPOSURE_LEVELS_MS[i];
             int gain = GAIN_LEVELS[i];
             String levelName = LEVEL_NAMES[i];
