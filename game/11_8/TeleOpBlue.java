@@ -69,7 +69,7 @@ public class TeleOpBlue extends LinearOpMode {
     private int lastFL, lastFR, lastBL, lastBR;
 
     private boolean fieldCentric = true; // B to toggle
-    private boolean prevB=false, prevY=false;
+    private boolean prevB=false, prevY=false, prevUp=false;
 
     // AprilTag variables and constants
     final double DESIRED_DISTANCE = 65.0; 
@@ -203,6 +203,14 @@ public class TeleOpBlue extends LinearOpMode {
 
             // --- driving: check for AprilTag auto-drive or manual control ---
             double fwd = 0, str = 0, yaw = 0;
+            
+            // UP resets AprilTag exposure cache on either controller (checked every loop)
+            boolean curUp = gamepad1.dpad_up || gamepad2.dpad_up;
+            if (curUp && !prevUp) { 
+                cachedExposureIndex = null;
+                telemetry.addData("AprilTag Cache", "RESET - will scan all exposure levels next time");
+            }
+            prevUp = curUp;
             
             // Check if A button is pressed for AprilTag auto-drive
             boolean aPressed = gamepad1.a || gamepad2.a;
@@ -568,9 +576,17 @@ public class TeleOpBlue extends LinearOpMode {
     }
     
     /**
-     * Detect AprilTag with retry logic using different exposure settings.
-     * Tries 8 exposure levels from bright (light_0) to dim (light_7).
-     * Caches the successful exposure setting and reuses it on subsequent calls.
+     * Detect AprilTag with optimized exposure settings.
+     * 
+     * Fast Mode (when cache exists):
+     * - Only tries the cached exposure setting for maximum speed
+     * - Returns false immediately if not found (no full scan)
+     * 
+     * Full Scan Mode (when no cache):
+     * - Tries all 8 exposure levels from bright (light_0) to dim (light_7)
+     * - Caches the successful exposure setting for future fast mode use
+     * 
+     * To reset cache and force full scan: Press D-pad UP on either controller
      * 
      * @return true if the desired tag is found, false otherwise
      */
@@ -578,12 +594,9 @@ public class TeleOpBlue extends LinearOpMode {
         desiredTag = null;
         int desiredTagId = DESIRED_TAG_ID;
         
-        Integer triedCachedIndex = null;  // Track which index we already tried
-        
-        // First, try the cached successful exposure setting if available
+        // If we have a cached exposure setting, ONLY try that one (fast mode)
         if (cachedExposureIndex != null) {
             int i = cachedExposureIndex;
-            triedCachedIndex = i;  // Remember we tried this
             int exposureMS = EXPOSURE_LEVELS_MS[i];
             int gain = GAIN_LEVELS[i];
             String levelName = LEVEL_NAMES[i];
@@ -591,16 +604,12 @@ public class TeleOpBlue extends LinearOpMode {
             if (tryDetectWithExposure(desiredTagId, exposureMS, gain, levelName)) {
                 return true;
             }
-            // Don't clear cache immediately - just continue searching
+            // Cache didn't work - return false immediately (press UP to reset cache and scan all levels)
+            return false;
         }
         
-        // Loop through all exposure levels from bright (index 0) to dim (index 7)
+        // No cache - scan through all exposure levels from bright (index 0) to dim (index 7)
         for (int i = 0; i < EXPOSURE_LEVELS_MS.length; i++) {
-            // Skip the index we already tried with cache
-            if (triedCachedIndex != null && i == triedCachedIndex) {
-                continue;
-            }
-            
             int exposureMS = EXPOSURE_LEVELS_MS[i];
             int gain = GAIN_LEVELS[i];
             String levelName = LEVEL_NAMES[i];
@@ -612,8 +621,6 @@ public class TeleOpBlue extends LinearOpMode {
             }
         }
         
-        // If we get here, no tag found with any exposure - clear the cache
-        cachedExposureIndex = null;
         return false;  // No target found
     }
     
