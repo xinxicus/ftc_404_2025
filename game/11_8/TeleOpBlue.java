@@ -102,6 +102,10 @@ public class TeleOpBlue extends LinearOpMode {
     // ---- Cached exposure setting ----
     // Stores the last successful exposure index to reuse on subsequent detections
     private Integer cachedExposureIndex = null;
+    
+    // Track current exposure settings to avoid redundant setManualExposure() calls
+    private int currentExposureMS = -1;
+    private int currentGain = -1;
 
     @Override
     public void runOpMode() {
@@ -153,8 +157,13 @@ public class TeleOpBlue extends LinearOpMode {
 
         // Initialize AprilTag
         initAprilTag();
-        if (USE_WEBCAM)
-            setManualExposure(EXPOSURE_LEVELS_MS[DEFAULT_EXPOSURE_INDEX], GAIN_LEVELS[DEFAULT_EXPOSURE_INDEX]);
+        if (USE_WEBCAM) {
+            int initExposure = EXPOSURE_LEVELS_MS[DEFAULT_EXPOSURE_INDEX];
+            int initGain = GAIN_LEVELS[DEFAULT_EXPOSURE_INDEX];
+            setManualExposure(initExposure, initGain);
+            currentExposureMS = initExposure;
+            currentGain = initGain;
+        }
 
         lastFL = fl.getCurrentPosition();
         lastFR = fr.getCurrentPosition();
@@ -557,23 +566,29 @@ public class TeleOpBlue extends LinearOpMode {
         desiredTag = null;
         int desiredTagId = DESIRED_TAG_ID;
         
+        Integer triedCachedIndex = null;  // Track which index we already tried
+        
         // First, try the cached successful exposure setting if available
         if (cachedExposureIndex != null) {
             int i = cachedExposureIndex;
+            triedCachedIndex = i;  // Remember we tried this
             int exposureMS = EXPOSURE_LEVELS_MS[i];
             int gain = GAIN_LEVELS[i];
             String levelName = LEVEL_NAMES[i];
             
             if (tryDetectWithExposure(desiredTagId, exposureMS, gain, levelName)) {
                 return true;
-            } else {
-                // Clear cache if it no longer works
-                cachedExposureIndex = null;
             }
+            // Don't clear cache immediately - just continue searching
         }
         
         // Loop through all exposure levels from bright (index 0) to dim (index 7)
         for (int i = 0; i < EXPOSURE_LEVELS_MS.length; i++) {
+            // Skip the index we already tried with cache
+            if (triedCachedIndex != null && i == triedCachedIndex) {
+                continue;
+            }
+            
             int exposureMS = EXPOSURE_LEVELS_MS[i];
             int gain = GAIN_LEVELS[i];
             String levelName = LEVEL_NAMES[i];
@@ -585,6 +600,8 @@ public class TeleOpBlue extends LinearOpMode {
             }
         }
         
+        // If we get here, no tag found with any exposure - clear the cache
+        cachedExposureIndex = null;
         return false;  // No target found
     }
     
@@ -598,11 +615,15 @@ public class TeleOpBlue extends LinearOpMode {
      * @return true if tag was found, false otherwise
      */
     private boolean tryDetectWithExposure(int desiredTagId, int exposureMS, int gain, String settingName) {
-        // Set exposure for this attempt
-        setManualExposure(exposureMS, gain);
-        
-        // Wait a bit for exposure to take effect
-        sleep(100);
+        // Only set exposure if it has changed from current settings
+        if (exposureMS != currentExposureMS || gain != currentGain) {
+            setManualExposure(exposureMS, gain);
+            currentExposureMS = exposureMS;
+            currentGain = gain;
+            
+            // Wait a bit for exposure to take effect
+            sleep(100);
+        }
         
         // Try to detect
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
