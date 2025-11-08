@@ -294,7 +294,19 @@ public class TeleOpBlue extends LinearOpMode {
             }
             telemetry.addData("Pose", "x=%.1f in, y=%.1f in, h=%.1f°",
                     x, y, Math.toDegrees(heading));
-            telemetry.addData("Hint", "A:AprilTag, B:Field/Robot, Y:Reset, L2:Reverse(Clear Jams)");
+            
+            // Display AprilTag cache status
+            if (cachedExposureIndex != null) {
+                int exposureMS = EXPOSURE_LEVELS_MS[cachedExposureIndex];
+                int gain = GAIN_LEVELS[cachedExposureIndex];
+                String levelName = LEVEL_NAMES[cachedExposureIndex];
+                telemetry.addData("AprilTag Cache", "✓ %s [%d] (exp:%dms, gain:%d)", 
+                    levelName, cachedExposureIndex, exposureMS, gain);
+            } else {
+                telemetry.addData("AprilTag Cache", "NONE - Will scan all levels");
+            }
+            
+            telemetry.addData("Hint", "A:AprilTag, B:Field/Robot, Y:Reset, UP:ResetCache, L2:Reverse");
             telemetry.addData("", "");
             telemetry.addData("Accessories", "");
             // Reuse reverseMode from earlier in the loop
