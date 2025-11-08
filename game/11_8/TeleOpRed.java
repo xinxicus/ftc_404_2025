@@ -69,7 +69,7 @@ public class TeleOpRed extends LinearOpMode {
     private int lastFL, lastFR, lastBL, lastBR;
 
     private boolean fieldCentric = true; // B to toggle
-    private boolean prevB=false, prevY=false;
+    private boolean prevB=false, prevY=false, prevUp=false;
 
     // AprilTag variables and constants
     final double DESIRED_DISTANCE = 65.0; 
@@ -102,6 +102,10 @@ public class TeleOpRed extends LinearOpMode {
     // ---- Cached exposure setting ----
     // Stores the last successful exposure index to reuse on subsequent detections
     private Integer cachedExposureIndex = null;
+    
+    // Track current exposure settings to avoid redundant setManualExposure() calls
+    private int currentExposureMS = -1;
+    private int currentGain = -1;
 
     @Override
     public void runOpMode() {
@@ -153,8 +157,13 @@ public class TeleOpRed extends LinearOpMode {
 
         // Initialize AprilTag
         initAprilTag();
-        if (USE_WEBCAM)
-            setManualExposure(EXPOSURE_LEVELS_MS[DEFAULT_EXPOSURE_INDEX], GAIN_LEVELS[DEFAULT_EXPOSURE_INDEX]);
+        if (USE_WEBCAM) {
+            int initExposure = EXPOSURE_LEVELS_MS[DEFAULT_EXPOSURE_INDEX];
+            int initGain = GAIN_LEVELS[DEFAULT_EXPOSURE_INDEX];
+            setManualExposure(initExposure, initGain);
+            currentExposureMS = initExposure;
+            currentGain = initGain;
+        }
 
         lastFL = fl.getCurrentPosition();
         lastFR = fr.getCurrentPosition();
@@ -170,9 +179,6 @@ public class TeleOpRed extends LinearOpMode {
             boolean reverseMode = gamepad1.left_trigger > 0.5 || gamepad2.left_trigger > 0.5;
             boolean intakePressed = gamepad1.x || gamepad2.x;
             
-            // AprilTag detection
-            boolean targetFound = detectAprilTag();
-            displayAprilTagStatus(targetFound);
             // --- (optional) pose update ---
             YawPitchRollAngles ypr = imu.getRobotYawPitchRollAngles();
             double imuYaw = ypr.getYaw(AngleUnit.RADIANS);
@@ -196,16 +202,36 @@ public class TeleOpRed extends LinearOpMode {
             heading = wrap(heading + dTheta);
 
             // --- driving: check for AprilTag auto-drive or manual control ---
-            double fwd, str, yaw;
+            double fwd = 0, str = 0, yaw = 0;
             
-            // Try AprilTag auto-drive first (A button on either controller)
+            // UP resets AprilTag exposure cache on either controller (checked every loop)
+            boolean curUp = gamepad1.dpad_up || gamepad2.dpad_up;
+            if (curUp && !prevUp) { 
+                cachedExposureIndex = null;
+                telemetry.addData("AprilTag Cache", "RESET - will scan all exposure levels next time");
+            }
+            prevUp = curUp;
+            
+            // Check if A button is pressed for AprilTag auto-drive
+            boolean aPressed = gamepad1.a || gamepad2.a;
+            boolean useAutoDrive = false;
+            
+            if (aPressed) {
+                // AprilTag auto-drive mode - detect target
+                boolean targetFound = detectAprilTag();
+                displayAprilTagStatus(targetFound);
+                
             double[] autoDriveCommands = getAutoDriveCommands(targetFound);
             if (autoDriveCommands != null) {
-                // AprilTag auto-drive mode is active
+                    // AprilTag detected and auto-drive active
                 fwd = autoDriveCommands[0];
                 str = autoDriveCommands[1];
                 yaw = autoDriveCommands[2];
-            } else {
+                    useAutoDrive = true;
+                }
+            }
+            
+            if (!useAutoDrive) {
                 // Manual control mode - combine inputs from both controllers
                 double y1 = -gamepad1.left_stick_y;
                 double x1 = gamepad1.left_stick_x;
@@ -276,7 +302,19 @@ public class TeleOpRed extends LinearOpMode {
             }
             telemetry.addData("Pose", "x=%.1f in, y=%.1f in, h=%.1f°",
                     x, y, Math.toDegrees(heading));
-            telemetry.addData("Hint", "A:AprilTag, B:Field/Robot, Y:Reset, L2:Reverse(Clear Jams)");
+            
+            // Display AprilTag cache status
+            if (cachedExposureIndex != null) {
+                int exposureMS = EXPOSURE_LEVELS_MS[cachedExposureIndex];
+                int gain = GAIN_LEVELS[cachedExposureIndex];
+                String levelName = LEVEL_NAMES[cachedExposureIndex];
+                telemetry.addData("AprilTag Cache", "✓ %s [%d] (exp:%dms, gain:%d)", 
+                    levelName, cachedExposureIndex, exposureMS, gain);
+            } else {
+                telemetry.addData("AprilTag Cache", "NONE - Will scan all levels");
+            }
+            
+            telemetry.addData("Hint", "A:AprilTag, B:Field/Robot, Y:Reset, UP:ResetCache, L2:Reverse");
             telemetry.addData("", "");
             telemetry.addData("Accessories", "");
             // Reuse reverseMode from earlier in the loop
@@ -515,12 +553,10 @@ public class TeleOpRed extends LinearOpMode {
         
         if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
             telemetry.addData("Camera", "Waiting");
-            telemetry.update();
             while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
                 sleep(20);
             }
             telemetry.addData("Camera", "Ready");
-            telemetry.update();
         }
         
         if (!isStopRequested())
@@ -536,14 +572,21 @@ public class TeleOpRed extends LinearOpMode {
             gainControl.setGain(gain);
             sleep(20);
             telemetry.addData("Camera", "Ready");
-            telemetry.update();
         }
     }
     
     /**
-     * Detect AprilTag with retry logic using different exposure settings.
-     * Tries 8 exposure levels from bright (light_0) to dim (light_7).
-     * Caches the successful exposure setting and reuses it on subsequent calls.
+     * Detect AprilTag with optimized exposure settings.
+     * 
+     * Fast Mode (when cache exists):
+     * - Only tries the cached exposure setting for maximum speed
+     * - Returns false immediately if not found (no full scan)
+     * 
+     * Full Scan Mode (when no cache):
+     * - Tries all 8 exposure levels from bright (light_0) to dim (light_7)
+     * - Caches the successful exposure setting for future fast mode use
+     * 
+     * To reset cache and force full scan: Press D-pad UP on either controller
      * 
      * @return true if the desired tag is found, false otherwise
      */
@@ -551,7 +594,7 @@ public class TeleOpRed extends LinearOpMode {
         desiredTag = null;
         int desiredTagId = DESIRED_TAG_ID;
         
-        // First, try the cached successful exposure setting if available
+        // If we have a cached exposure setting, ONLY try that one (fast mode)
         if (cachedExposureIndex != null) {
             int i = cachedExposureIndex;
             int exposureMS = EXPOSURE_LEVELS_MS[i];
@@ -560,14 +603,18 @@ public class TeleOpRed extends LinearOpMode {
             
             if (tryDetectWithExposure(desiredTagId, exposureMS, gain, levelName)) {
                 return true;
-            } else {
-                // Clear cache if it no longer works
-                cachedExposureIndex = null;
             }
+            // Cache didn't work - return false immediately (press UP to reset cache and scan all levels)
+            //return false;
         }
         
-        // Loop through all exposure levels from bright (index 0) to dim (index 7)
+        // No cache - scan through all exposure levels from bright (index 0) to dim (index 7)
         for (int i = 0; i < EXPOSURE_LEVELS_MS.length; i++) {
+            // Skip the cached index if we already tried it
+            if (cachedExposureIndex != null && i == cachedExposureIndex) {
+                continue;
+            }
+            
             int exposureMS = EXPOSURE_LEVELS_MS[i];
             int gain = GAIN_LEVELS[i];
             String levelName = LEVEL_NAMES[i];
@@ -592,11 +639,15 @@ public class TeleOpRed extends LinearOpMode {
      * @return true if tag was found, false otherwise
      */
     private boolean tryDetectWithExposure(int desiredTagId, int exposureMS, int gain, String settingName) {
-        // Set exposure for this attempt
+        // Only set exposure if it has changed from current settings
+        if (exposureMS != currentExposureMS || gain != currentGain) {
         setManualExposure(exposureMS, gain);
+            currentExposureMS = exposureMS;
+            currentGain = gain;
         
         // Wait a bit for exposure to take effect
         sleep(100);
+        }
         
         // Try to detect
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
