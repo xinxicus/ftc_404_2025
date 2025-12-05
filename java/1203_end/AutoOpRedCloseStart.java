@@ -72,6 +72,28 @@ public class AutoOpRedCloseStart extends LinearOpMode {
     private static final int DESIRED_TAG_ID = 24;
     
     // ---- Camera exposure settings ----
+    // Camera exposure/gain pairs for different lighting conditions:
+    // Bright:  exposure=2, gain=80
+    // Light-1: exposure=3, gain=100
+    // Light-2: exposure=4, gain=120
+    // Light-3: exposure=4, gain=140
+    // Light-4: exposure=4, gain=160
+    // Light-5: exposure=4, gain=180
+    // Light-6: exposure=4, gain=200
+    // Dim:     exposure=5, gain=250
+    
+    // Uncomment one pair below based on lighting conditions:
+    // private static final int CAMERA_EXPOSURE_MS = 2; private static final int CAMERA_GAIN = 80;   // Bright
+    // private static final int CAMERA_EXPOSURE_MS = 3; private static final int CAMERA_GAIN = 100;  // Light-1
+    // private static final int CAMERA_EXPOSURE_MS = 4; private static final int CAMERA_GAIN = 120;  // Light-2
+    // private static final int CAMERA_EXPOSURE_MS = 4; private static final int CAMERA_GAIN = 140;  // Light-3
+    // private static final int CAMERA_EXPOSURE_MS = 4; private static final int CAMERA_GAIN = 160;  // Light-4
+    // private static final int CAMERA_EXPOSURE_MS = 4; private static final int CAMERA_GAIN = 180;  // Light-5
+    // private static final int CAMERA_EXPOSURE_MS = 4; private static final int CAMERA_GAIN = 200;  // Light-6
+    // private static final int CAMERA_EXPOSURE_MS = 5; private static final int CAMERA_GAIN = 250;  // Dim
+    
+    // Current setting (comment out and uncomment one above to change):
+    // ---- Camera exposure settings ----
     private static final int CAMERA_EXPOSURE_MS = 6;
     private static final int CAMERA_GAIN = 250;
     private VisionPortal visionPortal;

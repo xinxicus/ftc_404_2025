@@ -22,7 +22,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="Blue Far Start 12/2")
+@Autonomous(name="Blue Far Start 12/6")
 public class AutoOpBlueFarStart extends LinearOpMode {
     // ---- Odometry constants ----
     static final double WHEEL_RADIUS_IN = 1.8898;

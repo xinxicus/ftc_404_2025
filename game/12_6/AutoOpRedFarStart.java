@@ -22,8 +22,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="Blue Far Start 12/2")
-public class AutoOpBlueFarStart extends LinearOpMode {
+@Autonomous(name="Red Far Start 12/6")
+public class AutoOpRedFarStart extends LinearOpMode {
     // ---- Odometry constants ----
     static final double WHEEL_RADIUS_IN = 1.8898;
     static final double GEAR_RATIO = 1.0;
@@ -69,7 +69,7 @@ public class AutoOpBlueFarStart extends LinearOpMode {
     final double BEARING_OFFSET = 0.0;
     final double YAW_OFFSET = 0.0;
     private static final boolean USE_WEBCAM = true;
-    private static final int DESIRED_TAG_ID = 20;
+    private static final int DESIRED_TAG_ID = 24;
     
     // ---- Camera exposure settings ----
     // Camera exposure/gain pairs for different lighting conditions:
@@ -114,20 +114,20 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             setManualExposure(CAMERA_EXPOSURE_MS, CAMERA_GAIN);
         }
         
-        telemetry.addLine("=== BLUE FAR START ===");
+        telemetry.addLine("=== RED FAR START ===");
         telemetry.addLine();
         telemetry.addLine("Autonomous Sequence:");
         telemetry.addLine("  1. Drive Backward 55\"");
         telemetry.addLine("  2. Quick Reverse Mode");
         telemetry.addLine("  3. Scan & Drive to AprilTag");
         telemetry.addLine("  4. First Shot (8 sec)");
-        telemetry.addLine("  5. Turn Left 45°");
+        telemetry.addLine("  5. Turn Right 45°");
         telemetry.addLine("  6. Drive Forward & Intake");
         telemetry.addLine("  7. Drive Backward");
         telemetry.addLine("  8. Find AprilTag & Approach");
         telemetry.addLine("  9. Second Shot (8 sec)");
-        telemetry.addLine("  10. Strafe Left to Park");
-        telemetry.addLine("  11. Turn Left 45°");
+        telemetry.addLine("  10. Strafe Right to Park");
+        telemetry.addLine("  11. Turn Right 45°");
         telemetry.addLine();
         telemetry.addLine("✓ Ready - Press ▶ to start");
         telemetry.update();
@@ -156,7 +156,7 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             // Step 3: Scan for AprilTag and drive to it
             currentStatus = "Scanning for AprilTag";
             updateStatusDisplay();
-            if (scanForAprilTag(30.0, false, 10.0)) {
+            if (scanForAprilTag(30.0, true, 10.0)) {
                 currentStatus = "Tag Found - Driving";
                 updateStatusDisplay();
                 driveToAprilTag(10.0);
@@ -175,10 +175,10 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             updateStatusDisplay();
             sleep(100);
             
-            // Step 5: Turn left 45 degrees to face the balls
-            currentStatus = "Turn Left 45°";
+            // Step 5: Turn right 45 degrees to face the balls
+            currentStatus = "Turn Right 45°";
             updateStatusDisplay();
-            turnToHeading(-45, TURN_SPEED, 3.0);
+            turnToHeading(45, TURN_SPEED, 3.0);
             currentStatus = "Turn Complete";
             updateStatusDisplay();
             sleep(100);
@@ -206,7 +206,7 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             // Step 8: Scan for AprilTag and approach for second shot
             currentStatus = "Scanning for AprilTag";
             updateStatusDisplay();
-            if (scanForAprilTag(45.0, false, 10.0)) {
+            if (scanForAprilTag(45.0, true, 10.0)) {
                 currentStatus = "Tag Found - Driving";
                 updateStatusDisplay();
                 driveToAprilTag(10.0);
@@ -225,18 +225,18 @@ public class AutoOpBlueFarStart extends LinearOpMode {
             updateStatusDisplay();
             sleep(100);
 
-            // Step 10: Strafe left to park
-            currentStatus = "Strafe Left 40\"";
+            // Step 10: Strafe right to park
+            currentStatus = "Strafe Right 40\"";
             updateStatusDisplay();
-            driveDistance(0, -40, DRIVE_SPEED, 7.0); // Strafe left
+            driveDistance(0, 40, DRIVE_SPEED, 7.0); // Strafe right
             currentStatus = "Strafe Complete";
             updateStatusDisplay();
             sleep(100);
             
-            // Step 11: Turn left 45 degrees
-            currentStatus = "Turn Left 45°";
+            // Step 11: Turn right 45 degrees
+            currentStatus = "Turn Right 45°";
             updateStatusDisplay();
-            turnToHeading(-45, TURN_SPEED, 3.0);
+            turnToHeading(45, TURN_SPEED, 3.0);
             currentStatus = "Turn Complete";
             updateStatusDisplay();
             sleep(100);
@@ -487,7 +487,7 @@ public class AutoOpBlueFarStart extends LinearOpMode {
                     telemetry.addLine(String.format("🔍 Rescan attempt %d/3...", attempt));
                     telemetry.update();
                     
-                    if (scanForAprilTag(15, false, 5)) {
+                    if (scanForAprilTag(15, true, 5)) {
                         telemetry.addLine(String.format("✓ Target found again on attempt %d!", attempt));
                         telemetry.update();
                         foundAgain = true;
@@ -785,9 +785,10 @@ public class AutoOpBlueFarStart extends LinearOpMode {
         return false;
     }
     
+
     /**
      * Scan for AprilTag by slowly turning left and right
-     * Continuously checks for AprilTag while rotating
+     * Continuously checks for AprilTag while rotating.
      * 
      * @param degree The angle in degrees to scan in each direction
      * @param leftFirst If true, scan left first; if false, scan right first
@@ -1107,3 +1108,4 @@ public class AutoOpBlueFarStart extends LinearOpMode {
     }
 
 }
+
