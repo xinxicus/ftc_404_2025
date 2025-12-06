@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limelight Camera Setup & Usage Guide for FTC</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap');
+        
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-green: #3fb950;
+            --accent-blue: #58a6ff;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --border-color: #30363d;
+            --code-bg: #1a1f26;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin: 3rem 0 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        h3 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin: 2rem 0 1rem;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        a:hover {
+            color: var(--accent-green);
+            text-decoration: underline;
+        }
+        
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+        }
+        
+        li ul, li ol {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            background: var(--code-bg);
+            padding: 0.2em 0.5em;
+            border-radius: 4px;
+            color: var(--accent-orange);
+        }
+        
+        pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+        
+        .ascii-diagram {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--accent-green);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            overflow-x: auto;
+            color: var(--accent-green);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            background: var(--bg-tertiary);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: var(--bg-tertiary);
+        }
+        
+        blockquote {
+            border-left: 4px solid var(--accent-purple);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-secondary);
+            border-radius: 0 8px 8px 0;
+        }
+        
+        blockquote p {
+            margin: 0;
+            color: var(--text-secondary);
+        }
+        
+        blockquote strong {
+            color: var(--accent-orange);
+        }
+        
+        hr {
+            border: none;
+            height: 1px;
+            background: var(--border-color);
+            margin: 3rem 0;
+        }
+        
+        .toc {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem 2rem;
+            margin: 2rem 0;
+        }
+        
+        .toc h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .toc ol {
+            margin-bottom: 0;
+        }
+        
+        .section {
+            margin-bottom: 2rem;
+        }
+        
+        .tip {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1), rgba(88, 166, 255, 0.1));
+            border: 1px solid var(--accent-green);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .tip::before {
+            content: "💡 Tip: ";
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+        
+        .note {
+            background: linear-gradient(135deg, rgba(210, 153, 34, 0.1), rgba(248, 81, 73, 0.1));
+            border: 1px solid var(--accent-orange);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .note::before {
+            content: "📝 Note: ";
+            font-weight: 600;
+            color: var(--accent-orange);
+        }
+        
+        .wiring-diagram {
+            background: var(--bg-tertiary);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            border-left: 4px solid var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Limelight Camera Setup & Usage Guide for FTC</h1>
+        <p>This guide covers setting up a Limelight 3A camera for FTC robotics and explains the code flow for AprilTag-based auto-drive and auto-aim.</p>
+        
+        <hr>
+        
+        <div class="toc">
+            <h2>Table of Contents</h2>
+            <ol>
+                <li><a href="#hardware-setup">Hardware Setup</a></li>
+                <li><a href="#software-configuration">Software Configuration</a></li>
+                <li><a href="#robot-configuration">Robot Configuration</a></li>
+                <li><a href="#code-flow-overview">Code Flow Overview</a></li>
+                <li><a href="#auto-drive-logic">Auto-Drive Logic</a></li>
+                <li><a href="#tuning-parameters">Tuning Parameters</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ol>
+        </div>
+        
+        <hr>
+        
+        <section id="hardware-setup">
+            <h2>1. Hardware Setup</h2>
+            
+            <h3>1.1 Mounting the Limelight</h3>
+            
+            <ol>
+                <li><strong>Position</strong>: Mount the Limelight on your robot where it has a clear view of AprilTags
+                    <ul>
+                        <li>Typically mounted on the front or back of the robot</li>
+                        <li>Ensure it's secured firmly to avoid vibration during movement</li>
+                    </ul>
+                </li>
+                <li><strong>Orientation</strong>: Note the camera's orientation relative to your robot
+                    <ul>
+                        <li>The Limelight's coordinate system matters for pose calculations</li>
+                        <li>Document your mounting angle for later calibration</li>
+                    </ul>
+                </li>
+                <li><strong>Wiring</strong>:
+                    <div class="wiring-diagram">
+                        Limelight 3A → Control Hub<br>
+                        ─────────────────────────<br>
+                        USB-C cable → USB port on Control Hub
+                    </div>
+                    <div class="note">Limelight 3A uses USB connection. Make sure to use a quality USB-C cable.</div>
+                </li>
+            </ol>
+            
+            <h3>1.2 Power Considerations</h3>
+            <ul>
+                <li>Limelight 3A is powered via USB from the Control Hub</li>
+                <li>Ensure your Control Hub has adequate power supply</li>
+                <li>Consider using a powered USB hub if you have multiple USB devices</li>
+            </ul>
+        </section>
+        
+        <hr>
+        
+        <section id="software-configuration">
+            <h2>2. Software Configuration</h2>
+            
+            <h3>2.1 Accessing the Limelight Web Interface</h3>
+            
+            <ol>
+                <li><strong>Connect to Robot WiFi</strong> (or connect via USB)</li>
+                <li><strong>Open Web Browser</strong> and navigate to:
+                    <pre><code>http://limelight.local:5801</code></pre>
+                    <div class="tip">If <code>limelight.local</code> doesn't work, try the IP address (usually <code>10.TE.AM.11</code> where TEAM is your team number)</div>
+                </li>
+            </ol>
+            
+            <h3>2.2 Configure AprilTag Pipeline</h3>
+            
+            <ol>
+                <li><strong>Select Pipeline 0</strong> (or create a new pipeline)</li>
+                <li><strong>Set Pipeline Type</strong>: Select <code>AprilTag</code> or <code>Fiducial</code></li>
+                <li><strong>Configure AprilTag Settings</strong>:
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Recommended Value</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Tag Family</td>
+                                <td><code>36h11</code></td>
+                                <td>Standard FTC AprilTag family</td>
+                            </tr>
+                            <tr>
+                                <td>Tag Size</td>
+                                <td><code>0.0508</code> meters (2 inches)</td>
+                                <td>Size of FTC AprilTags</td>
+                            </tr>
+                            <tr>
+                                <td>Decimation</td>
+                                <td><code>2</code></td>
+                                <td>Balance between range and speed</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </li>
+                <li><strong>Camera Settings</strong>:
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>TeleOp</th>
+                                <th>Autonomous</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Exposure</td>
+                                <td>Higher (5-10ms)</td>
+                                <td>Lower (2-4ms)</td>
+                            </tr>
+                            <tr>
+                                <td>Gain</td>
+                                <td>Higher (200-250)</td>
+                                <td>Lower (80-120)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="tip">Lower exposure = faster detection but shorter range. Adjust based on your lighting conditions.</div>
+                </li>
+            </ol>
+            
+            <h3>2.3 Camera Calibration (Optional but Recommended)</h3>
+            <ol>
+                <li>Go to <strong>Settings → Calibration</strong></li>
+                <li>Follow the on-screen instructions with a calibration board</li>
+                <li>Save calibration for more accurate pose estimation</li>
+            </ol>
+            
+            <h3>2.4 Save Configuration</h3>
+            <ol>
+                <li>Click <strong>Save</strong> to save pipeline settings</li>
+                <li>Set Pipeline 0 as the <strong>default pipeline</strong> if desired</li>
+            </ol>
+        </section>
+        
+        <hr>
+        
+        <section id="robot-configuration">
+            <h2>3. Robot Configuration</h2>
+            
+            <h3>3.1 Add Limelight to Hardware Map</h3>
+            <ol>
+                <li>Open <strong>FTC Driver Station</strong> or <strong>Robot Controller</strong></li>
+                <li>Go to <strong>Configure Robot</strong></li>
+                <li>Add a new device:
+                    <ul>
+                        <li><strong>Type</strong>: <code>Limelight3A</code></li>
+                        <li><strong>Name</strong>: <code>limelight</code></li>
+                        <li><strong>Port</strong>: USB (should auto-detect)</li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <h3>3.2 Verify Connection</h3>
+            <p>After configuring, the Limelight should show as connected in the hardware map. You can verify by checking the Limelight web interface - it should show "Connected" status.</p>
+        </section>
+        
+        <hr>
+        
+        <section id="code-flow-overview">
+            <h2>4. Code Flow Overview</h2>
+            
+            <h3>4.1 Initialization Flow</h3>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                      runOpMode()                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. Initialize Hardware                                      │
+│     ├── Drive motors (fl, fr, bl, br)                       │
+│     ├── IMU                                                  │
+│     ├── Accessory motors                                     │
+│     └── Limelight camera ─────────────────┐                 │
+│                                            │                 │
+│                                            ▼                 │
+│                               ┌─────────────────────┐       │
+│                               │   initLimelight()   │       │
+│                               ├─────────────────────┤       │
+│                               │ 1. Get from hardwareMap     │
+│                               │ 2. Switch to pipeline 0     │
+│                               │ 3. Start polling            │
+│                               └─────────────────────┘       │
+│                                                              │
+│  2. waitForStart()                                          │
+│                                                              │
+│  3. Main Loop ──────────────────────────────────────────────│
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+            </div>
+            
+            <h3>4.2 Main Loop Flow</h3>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                    MAIN LOOP (while opModeIsActive)          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              Check A Button Pressed?                  │   │
+│  └──────────────────┬───────────────────────────────────┘   │
+│                     │                                        │
+│         ┌───────────┴───────────┐                           │
+│         │                       │                           │
+│         ▼                       ▼                           │
+│   ┌──────────┐           ┌──────────────┐                   │
+│   │ A = YES  │           │   A = NO     │                   │
+│   └────┬─────┘           └──────┬───────┘                   │
+│        │                        │                           │
+│        ▼                        ▼                           │
+│  ┌─────────────┐         ┌─────────────────┐               │
+│  │ Auto-Drive  │         │  Manual Control │               │
+│  │    Mode     │         │      Mode       │               │
+│  └─────────────┘         └─────────────────┘               │
+│        │                        │                           │
+│        ▼                        ▼                           │
+│  ┌─────────────┐         ┌─────────────────┐               │
+│  │detectAprilTag()       │ Read gamepad    │               │
+│  └─────────────┘         │ joysticks       │               │
+│        │                  └─────────────────┘               │
+│        ▼                        │                           │
+│  ┌─────────────────────┐       │                           │
+│  │getAutoDriveCommands()│       │                           │
+│  └─────────────────────┘       │                           │
+│        │                        │                           │
+│        └────────────┬───────────┘                           │
+│                     │                                        │
+│                     ▼                                        │
+│           ┌─────────────────┐                               │
+│           │ Apply motor     │                               │
+│           │ powers (mecanum)│                               │
+│           └─────────────────┘                               │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+            </div>
+            
+            <h3>4.3 Code Structure</h3>
+            <pre><code>// Main components in TeleOpBlue.java
+
+class TeleOpBlue {
+    
+    // Limelight variables
+    private Limelight3A limelight;                    // Camera object
+    private LLResultTypes.FiducialResult desiredFiducial;  // Detected tag
+    
+    // Methods
+    void initLimelight()           // Initialize camera
+    boolean detectAprilTag()       // Find target AprilTag
+    void displayAprilTagStatus()   // Show telemetry
+    double[] getAutoDriveCommands() // Calculate drive commands
+}</code></pre>
+        </section>
+        
+        <hr>
+        
+        <section id="auto-drive-logic">
+            <h2>5. Auto-Drive Logic</h2>
+            
+            <h3>5.1 Detection Flow</h3>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                   detectAprilTag()                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   1. Get latest result from Limelight                       │
+│      └── LLResult result = limelight.getLatestResult()      │
+│                                                              │
+│   2. Check if result is valid                               │
+│      └── result != null && result.isValid()                 │
+│                                                              │
+│   3. Get fiducial (AprilTag) results                        │
+│      └── result.getFiducialResults()                        │
+│                                                              │
+│   4. Find desired tag ID                                    │
+│      └── Loop through fiducials                             │
+│          └── Check if fiducial.getFiducialId() == target    │
+│                                                              │
+│   5. Return true if found, false otherwise                  │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+            </div>
+            
+            <h3>5.2 Auto-Drive Calculation</h3>
+            <p>The auto-drive system uses three control loops:</p>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│              getAutoDriveCommands() - Control Loops          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 1. FORWARD/BACKWARD (Range Control)                  │    │
+│  │                                                      │    │
+│  │    rangeError = currentRange - DESIRED_DISTANCE      │    │
+│  │    fwd = rangeError × SPEED_GAIN                     │    │
+│  │                                                      │    │
+│  │    Example: Tag at 80", target 60"                   │    │
+│  │    → error = 20" → fwd = 0.7 (drive forward)        │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 2. STRAFE (Lateral Alignment)                        │    │
+│  │                                                      │    │
+│  │    yawError = robotYaw - YAW_OFFSET                  │    │
+│  │    str = yawError × SPEED_GAIN                       │    │
+│  │                                                      │    │
+│  │    Example: Robot 10° right of center                │    │
+│  │    → error = 10° → str = 0.35 (strafe left)         │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 3. TURN (Heading Correction)                         │    │
+│  │                                                      │    │
+│  │    headingError = bearing - BEARING_OFFSET           │    │
+│  │    yaw = -headingError × TURN_GAIN                   │    │
+│  │                                                      │    │
+│  │    Example: Tag 15° to the right                     │    │
+│  │    → error = 15° → yaw = -0.25 (turn right)         │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+            </div>
+            
+            <h3>5.3 Pose Data from Limelight</h3>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│              Limelight Pose Data Structure                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  desiredFiducial.getRobotPoseTargetSpace()                  │
+│       │                                                      │
+│       └── Pose3D                                            │
+│            ├── Position (x, y, z in meters)                 │
+│            │    ├── x: lateral offset                       │
+│            │    ├── y: vertical offset                      │
+│            │    └── z: distance to target                   │
+│            │                                                │
+│            └── Orientation (YawPitchRoll)                   │
+│                 ├── yaw: rotation around vertical           │
+│                 ├── pitch: rotation around lateral          │
+│                 └── roll: rotation around forward           │
+│                                                              │
+│  desiredFiducial.getTargetXDegrees()                        │
+│       └── Horizontal angle to target (bearing)              │
+│                                                              │
+│  desiredFiducial.getTargetYDegrees()                        │
+│       └── Vertical angle to target                          │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+            </div>
+            
+            <h3>5.4 Visual Representation</h3>
+            <div class="ascii-diagram">
+                    AprilTag
+                       │
+                       │ Range (z)
+                       │
+                       ▼
+        ◄──── Yaw ────►
+                    ┌─────┐
+                    │     │
+                    │Robot│ ──── Bearing ────►
+                    │     │
+                    └─────┘
+                       │
+                       │
+                    Forward
+            </div>
+        </section>
+        
+        <hr>
+        
+        <section id="tuning-parameters">
+            <h2>6. Tuning Parameters</h2>
+            
+            <h3>6.1 Control Gains</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Default</th>
+                        <th>Range</th>
+                        <th>Effect</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>SPEED_GAIN</code></td>
+                        <td>0.035</td>
+                        <td>0.01-0.1</td>
+                        <td>Higher = faster approach, more overshoot</td>
+                    </tr>
+                    <tr>
+                        <td><code>TURN_GAIN</code></td>
+                        <td>0.017</td>
+                        <td>0.01-0.05</td>
+                        <td>Higher = faster turning, more oscillation</td>
+                    </tr>
+                    <tr>
+                        <td><code>MAX_AUTO_SPEED</code></td>
+                        <td>0.55</td>
+                        <td>0.3-0.8</td>
+                        <td>Maximum forward/strafe speed</td>
+                    </tr>
+                    <tr>
+                        <td><code>MAX_AUTO_TURN</code></td>
+                        <td>0.25</td>
+                        <td>0.1-0.4</td>
+                        <td>Maximum turn speed</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>6.2 Target Settings</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Default</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>DESIRED_DISTANCE</code></td>
+                        <td>60.0</td>
+                        <td>Target distance from AprilTag (inches)</td>
+                    </tr>
+                    <tr>
+                        <td><code>DESIRED_TAG_ID</code></td>
+                        <td>20</td>
+                        <td>AprilTag ID to track (-1 for any tag)</td>
+                    </tr>
+                    <tr>
+                        <td><code>BEARING_OFFSET</code></td>
+                        <td>0.0</td>
+                        <td>Compensate for camera not centered</td>
+                    </tr>
+                    <tr>
+                        <td><code>YAW_OFFSET</code></td>
+                        <td>0.0</td>
+                        <td>Compensate for camera angle offset</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>6.3 Tuning Process</h3>
+            <ol>
+                <li><strong>Start with low gains</strong> (SPEED_GAIN = 0.02, TURN_GAIN = 0.01)</li>
+                <li><strong>Test range control</strong> first - does robot approach target distance?</li>
+                <li><strong>Increase SPEED_GAIN</strong> until robot responds quickly but doesn't overshoot</li>
+                <li><strong>Test turning</strong> - does robot face the tag?</li>
+                <li><strong>Increase TURN_GAIN</strong> until robot aligns without oscillating</li>
+                <li><strong>Adjust offsets</strong> if robot consistently stops off-center</li>
+            </ol>
+        </section>
+        
+        <hr>
+        
+        <section id="troubleshooting">
+            <h2>7. Troubleshooting</h2>
+            
+            <h3>7.1 Common Issues</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Problem</th>
+                        <th>Possible Cause</th>
+                        <th>Solution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>"No result" in telemetry</td>
+                        <td>Limelight not connected</td>
+                        <td>Check USB cable, restart robot</td>
+                    </tr>
+                    <tr>
+                        <td>Tag not detected</td>
+                        <td>Wrong pipeline</td>
+                        <td>Switch pipeline with UP/DOWN</td>
+                    </tr>
+                    <tr>
+                        <td>Tag not detected</td>
+                        <td>Exposure too low</td>
+                        <td>Increase exposure in Limelight UI</td>
+                    </tr>
+                    <tr>
+                        <td>Robot overshoots</td>
+                        <td>Gains too high</td>
+                        <td>Reduce SPEED_GAIN or TURN_GAIN</td>
+                    </tr>
+                    <tr>
+                        <td>Robot oscillates</td>
+                        <td>TURN_GAIN too high</td>
+                        <td>Reduce TURN_GAIN</td>
+                    </tr>
+                    <tr>
+                        <td>Robot stops off-center</td>
+                        <td>Camera offset</td>
+                        <td>Adjust BEARING_OFFSET and YAW_OFFSET</td>
+                    </tr>
+                    <tr>
+                        <td>Pose data is null</td>
+                        <td>Tag too far</td>
+                        <td>Move closer or reduce decimation</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>7.2 Debug Telemetry</h3>
+            <p>The code displays useful debug information:</p>
+            <pre><code>DEBUG Range: 65.2" (target: 60.0")
+DEBUG Yaw: 5.3° (offset: 0.0°, error: 5.3°)  
+DEBUG Bearing: -3.2° (offset: 0.0°, error: -3.2°)</code></pre>
+            
+            <h3>7.3 Pipeline Switching</h3>
+            <p>Use <strong>UP/DOWN</strong> buttons on gamepad to switch between pipelines (0-9):</p>
+            <ul>
+                <li><strong>UP</strong>: Next pipeline (higher number)</li>
+                <li><strong>DOWN</strong>: Previous pipeline (lower number)</li>
+            </ul>
+            <p>This is useful for:</p>
+            <ul>
+                <li>Different lighting conditions</li>
+                <li>Different detection modes</li>
+                <li>Testing configurations</li>
+            </ul>
+        </section>
+        
+        <hr>
+        
+        <section id="quick-reference">
+            <h2>Quick Reference</h2>
+            
+            <h3>Controls</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Button</th>
+                        <th>Function</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>A</td>
+                        <td>Hold for AprilTag auto-drive</td>
+                    </tr>
+                    <tr>
+                        <td>B</td>
+                        <td>Toggle field-centric/robot-centric</td>
+                    </tr>
+                    <tr>
+                        <td>Y</td>
+                        <td>Reset IMU heading</td>
+                    </tr>
+                    <tr>
+                        <td>UP</td>
+                        <td>Switch to next pipeline</td>
+                    </tr>
+                    <tr>
+                        <td>DOWN</td>
+                        <td>Switch to previous pipeline</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3>Key Methods</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>initLimelight()</code></td>
+                        <td>Initialize Limelight camera</td>
+                    </tr>
+                    <tr>
+                        <td><code>detectAprilTag()</code></td>
+                        <td>Search for target AprilTag</td>
+                    </tr>
+                    <tr>
+                        <td><code>displayAprilTagStatus()</code></td>
+                        <td>Show detection info on telemetry</td>
+                    </tr>
+                    <tr>
+                        <td><code>getAutoDriveCommands()</code></td>
+                        <td>Calculate drive powers from pose</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        
+        <hr>
+        
+        <section id="resources">
+            <h2>Resources</h2>
+            <ul>
+                <li><a href="https://docs.limelightvision.io/" target="_blank">Limelight Documentation</a></li>
+                <li><a href="https://ftctechnh.github.io/ftc_app/doc/javadoc/index.html" target="_blank">FTC Limelight API</a></li>
+                <li><a href="https://april.eecs.umich.edu/software/apriltag" target="_blank">AprilTag Family Info</a></li>
+            </ul>
+        </section>
+    </div>
+</body>
+</html>
+
